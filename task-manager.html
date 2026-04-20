@@ -3171,12 +3171,40 @@
         }
 
         function deleteFile(id) {
-            if (!confirm('确定要删除这个文件吗？')) return;
             const files = getData(STORAGE_KEYS.FILES);
+            const file = files.find(f => f.id === id);
+            if (!file) {
+                alert('文件未找到');
+                return;
+            }
+
+            // 检查是否有计划引用此文件
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const referencedPlans = plans.filter(p => p.attachments && p.attachments.includes(id));
+            
+            let confirmMsg = `确定要删除文件「${file.name}」吗？`;
+            if (referencedPlans.length > 0) {
+                const planNames = referencedPlans.map(p => p.title).join('、');
+                confirmMsg = `文件「${file.name}」被以下计划引用：\n${planNames}\n\n删除后会自动解除关联，确定继续吗？`;
+            }
+
+            if (!confirm(confirmMsg)) return;
+
+            // 从文件中删除
             const filtered = files.filter(f => f.id !== id);
             saveData(STORAGE_KEYS.FILES, filtered);
+
+            // 从引用该文件的计划中解除关联
+            plans.forEach(plan => {
+                if (plan.attachments) {
+                    plan.attachments = plan.attachments.filter(attId => attId !== id);
+                }
+            });
+            saveData(STORAGE_KEYS.PLANS, plans);
+
             renderCategoryFilters();
             renderFiles();
+            renderPlans(); // 刷新计划列表，更新关联数量
         }
 
         function downloadFile(id) {
