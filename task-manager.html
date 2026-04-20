@@ -587,13 +587,46 @@
             opacity: 1;
         }
 
+        .file-category-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-category-tag:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .file-category-tag.uncategorized {
+            background: var(--bg);
+            color: var(--text-light);
+            border: 1px dashed var(--border);
+        }
+
+        .file-category-tag.uncategorized:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
         .upload-area {
             border: 2px dashed var(--border);
             border-radius: 12px;
-            padding: 40px 20px;
+            padding: 30px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            flex: 1;
+            min-width: 150px;
         }
 
         .upload-area:hover {
@@ -601,9 +634,37 @@
             background: var(--primary-light);
         }
 
+        .upload-section {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            margin-bottom: 16px;
+        }
+
+        .upload-category-select {
+            flex: 0 0 160px;
+        }
+
+        .upload-category-select select {
+            width: 100%;
+            height: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            background: var(--bg);
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        .upload-category-select select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
         .upload-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
+            font-size: 40px;
+            margin-bottom: 8px;
         }
 
         .upload-text {
@@ -1376,9 +1437,17 @@
                     </button>
                 </div>
 
-                <div class="upload-area" onclick="document.getElementById('file-input').click()">
-                    <div class="upload-icon">📤</div>
-                    <div class="upload-text">点击上传文件</div>
+                <!-- 上传区域 -->
+                <div class="upload-section">
+                    <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                        <div class="upload-icon">📤</div>
+                        <div class="upload-text">点击上传文件</div>
+                    </div>
+                    <div class="upload-category-select">
+                        <select id="upload-category-select">
+                            <option value="">选择分类（可选）</option>
+                        </select>
+                    </div>
                 </div>
                 <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(event)">
                 <div class="file-grid" id="file-list" style="margin-top: 16px;"></div>
@@ -2289,6 +2358,18 @@
         }
 
         // ==================== 资料库 ====================
+        function updateUploadCategorySelect() {
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            const select = document.getElementById('upload-category-select');
+            if (!select) return;
+
+            let html = '<option value="">选择分类（可选）</option>';
+            categories.forEach(cat => {
+                html += `<option value="${cat.id}">📂 ${escapeHtml(cat.name)}</option>`;
+            });
+            select.innerHTML = html;
+        }
+
         function renderCategoryFilters() {
             const files = getData(STORAGE_KEYS.FILES);
             const categories = getData(STORAGE_KEYS.CATEGORIES);
@@ -2329,6 +2410,9 @@
             }
 
             container.innerHTML = html;
+
+            // 同时更新上传分类下拉框
+            updateUploadCategorySelect();
         }
 
         function filterByCategory(catId) {
@@ -2378,21 +2462,76 @@
                 return;
             }
 
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+
             container.innerHTML = filteredFiles.map(file => {
                 const linkedPlansCount = filePlanCounts[file.id] || 0;
-                const categories = getData(STORAGE_KEYS.CATEGORIES);
                 const cat = categories.find(c => c.id === file.category);
                 return `
-                    <div class="file-item" onclick="downloadFile(${file.id})">
+                    <div class="file-item">
                         <button class="file-delete" onclick="event.stopPropagation(); deleteFile(${file.id})">×</button>
-                        <div class="file-icon">${getFileIcon(file.type)}</div>
-                        <div class="file-name">${escapeHtml(file.name)}</div>
-                        <div class="file-size">${formatFileSize(file.size)}</div>
-                        ${cat ? `<div style="font-size: 11px; color: var(--primary);">📂 ${escapeHtml(cat.name)}</div>` : ''}
+                        <div class="file-icon" onclick="downloadFile(${file.id})">${getFileIcon(file.type)}</div>
+                        <div class="file-name" onclick="downloadFile(${file.id})">${escapeHtml(file.name)}</div>
+                        <div class="file-size" onclick="downloadFile(${file.id})">${formatFileSize(file.size)}</div>
+                        <div class="file-category-tag ${cat ? '' : 'uncategorized'}" onclick="event.stopPropagation(); showChangeCategoryModal(${file.id})">
+                            ${cat ? `📂 ${escapeHtml(cat.name)}` : '+ 添加分类'}
+                        </div>
                         ${linkedPlansCount > 0 ? `<div class="file-linked-plans">📎 被${linkedPlansCount}个计划引用</div>` : '<div class="file-empty-links">暂未被引用</div>'}
                     </div>
                 `;
             }).join('');
+        }
+
+        // 修改文件分类弹窗
+        function showChangeCategoryModal(fileId) {
+            const files = getData(STORAGE_KEYS.FILES);
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            const file = files.find(f => f.id === fileId);
+            if (!file) return;
+
+            const categoriesHtml = categories.map(cat => 
+                `<option value="${cat.id}" ${file.category === cat.id ? 'selected' : ''}>📂 ${escapeHtml(cat.name)}</option>`
+            ).join('');
+
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.id = 'change-category-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span class="modal-title">📂 修改分类</span>
+                        <button class="modal-close" onclick="closeChangeCategoryModal()">×</button>
+                    </div>
+                    <div class="add-form" style="box-shadow: none; padding: 0;">
+                        <p style="font-size: 14px; color: var(--text-light); margin-bottom: 12px;">📎 ${escapeHtml(file.name)}</p>
+                        <select id="change-category-select" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
+                            <option value="">📋 设为未分类</option>
+                            ${categoriesHtml}
+                        </select>
+                        <button class="btn-add" onclick="confirmChangeCategory(${fileId})" style="margin-top: 12px;">保存</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeChangeCategoryModal() {
+            const modal = document.getElementById('change-category-modal');
+            if (modal) modal.remove();
+        }
+
+        function confirmChangeCategory(fileId) {
+            const files = getData(STORAGE_KEYS.FILES);
+            const file = files.find(f => f.id === fileId);
+            if (!file) return;
+
+            const newCategory = document.getElementById('change-category-select').value;
+            file.category = newCategory || null;
+            saveData(STORAGE_KEYS.FILES, files);
+
+            closeChangeCategoryModal();
+            renderCategoryFilters();
+            renderFiles();
         }
 
         // ==================== 分类管理 ====================
@@ -2531,6 +2670,7 @@
             if (!fileList.length) return;
 
             const files = getData(STORAGE_KEYS.FILES);
+            const selectedCategory = document.getElementById('upload-category-select').value;
 
             Array.from(fileList).forEach(file => {
                 // 检查是否已存在同名文件
@@ -2555,7 +2695,7 @@
                         type: file.type,
                         size: file.size,
                         data: e.target.result,
-                        category: null,
+                        category: selectedCategory || null,
                         uploadedAt: new Date().toISOString()
                     });
                     saveData(STORAGE_KEYS.FILES, files);
