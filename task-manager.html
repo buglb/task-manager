@@ -659,17 +659,19 @@
             width: 100%;
             height: 100%;
             padding: 12px;
-            border: 1px solid var(--border);
+            border: 2px solid var(--primary);
             border-radius: 12px;
             font-size: 14px;
-            background: var(--bg);
+            background: var(--primary-light);
             cursor: pointer;
-            color: var(--text);
+            color: var(--primary);
+            font-weight: 500;
         }
 
         .upload-category-select select:focus {
             outline: none;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.2);
         }
 
         .upload-icon {
@@ -680,6 +682,42 @@
         .upload-text {
             color: var(--text-light);
             font-size: 14px;
+        }
+
+        /* 图片预览样式 */
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            padding: 8px;
+        }
+
+        .image-preview-item {
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--bg);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .image-preview-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        .image-preview-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .image-preview-name {
+            padding: 8px;
+            font-size: 12px;
+            color: var(--text-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* 模态框 */
@@ -1664,13 +1702,13 @@
 
                 <!-- 上传区域 -->
                 <div class="upload-section">
-                    <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                    <div class="upload-area" onclick="triggerFileUpload()">
                         <div class="upload-icon">📤</div>
                         <div class="upload-text">点击上传文件</div>
                     </div>
                     <div class="upload-category-select">
                         <select id="upload-category-select">
-                            <option value="">选择分类（可选）</option>
+                            <option value="">选择分类（必选）</option>
                         </select>
                     </div>
                 </div>
@@ -1765,14 +1803,11 @@
             <div class="add-form" style="box-shadow: none; padding: 0;">
                 <input type="text" id="plan-title" placeholder="计划名称..." maxlength="50">
                 <textarea id="plan-desc" placeholder="计划描述（可选）..." style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; margin-bottom: 10px; min-height: 80px; resize: vertical;"></textarea>
-                <div class="form-row">
-                    <select id="plan-status">
-                        <option value="progress">进行中</option>
-                        <option value="warning">遇到问题</option>
-                        <option value="stuck">停滞不前</option>
-                    </select>
-                    <input type="date" id="plan-deadline" placeholder="截止日期">
-                </div>
+                <select id="plan-status">
+                    <option value="progress">进行中</option>
+                    <option value="warning">遇到问题</option>
+                    <option value="stuck">停滞不前</option>
+                </select>
                 <!-- 计划关联资料选择 - 分类→文件层级 -->
                 <div class="plan-file-selector">
                     <label style="font-size: 13px; color: var(--text-light); margin-bottom: 8px; display: block;">📎 关联资料</label>
@@ -1839,6 +1874,20 @@
                     <button class="btn-add" onclick="closeAddTodoModal()" style="flex: 1; background: var(--text-light);">取消</button>
                     <button class="btn-add" onclick="addTodo()" style="flex: 1;">确认添加</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div class="modal" id="image-preview-modal">
+        <div class="modal-content" style="max-width: 600px; max-height: 85vh;">
+            <div class="modal-header">
+                <span class="modal-title">🖼️ 图片预览</span>
+                <button class="modal-close" onclick="closeImagePreview()">×</button>
+            </div>
+            <div id="image-preview-content" style="overflow-y: auto; max-height: 70vh;"></div>
+            <div style="margin-top: 16px; text-align: center;">
+                <button class="btn-add" onclick="closeImagePreview()" style="background: var(--text-light);">关闭</button>
             </div>
         </div>
     </div>
@@ -2491,14 +2540,7 @@
                             <span class="plan-title">${escapeHtml(plan.title)}</span>
                             <span class="plan-status status-${plan.status}">${statusText}</span>
                         </div>
-                        ${plan.desc ? `<p style="font-size: 13px; color: var(--text-light); margin-bottom: 8px;">${escapeHtml(plan.desc)}</p>` : ''}
-                        <div class="plan-progress">
-                            <div class="plan-progress-bar" style="width: ${plan.progress || 0}%"></div>
-                        </div>
-                        <div class="plan-meta">
-                            <span>📊 ${plan.progress || 0}%</span>
-                            ${plan.deadline ? `<span>📅 截止: ${formatDate(plan.deadline)}</span>` : ''}
-                        </div>
+                        ${plan.desc ? `<p style="font-size: 13px; color: var(--text-light); margin: 8px 0;">${escapeHtml(plan.desc)}</p>` : ''}
                         <div class="plan-attachments">
                             <div class="plan-attachments-header" onclick="toggleAttachments(${plan.id})">
                                 <span>📎 关联资料 (${attachments.length})</span>
@@ -2647,7 +2689,6 @@
                 document.getElementById('plan-title').value = plan.title;
                 document.getElementById('plan-desc').value = plan.desc || '';
                 document.getElementById('plan-status').value = plan.status;
-                document.getElementById('plan-deadline').value = plan.deadline || '';
                 // 重置选中分类
                 window.selectedPlanCategory = null;
                 // 保存当前选中的文件ID列表
@@ -2776,7 +2817,6 @@
             const title = document.getElementById('plan-title').value.trim();
             const desc = document.getElementById('plan-desc').value.trim();
             const status = document.getElementById('plan-status').value;
-            const deadline = document.getElementById('plan-deadline').value;
 
             if (!title) {
                 document.getElementById('plan-title').focus();
@@ -2794,7 +2834,6 @@
                     plan.title = title;
                     plan.desc = desc;
                     plan.status = status;
-                    plan.deadline = deadline;
                     plan.attachments = selectedIds;
                 }
             } else {
@@ -2803,7 +2842,6 @@
                     title,
                     desc,
                     status,
-                    deadline,
                     attachments: selectedIds,
                     createdAt: new Date().toISOString()
                 });
@@ -3130,12 +3168,32 @@
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
+        // 用于存储最新上传的图片ID列表
+        let lastUploadedImageIds = [];
+
+        function triggerFileUpload() {
+            const selectedCategory = document.getElementById('upload-category-select').value;
+            if (!selectedCategory) {
+                alert('⚠️ 请先选择文件分类！');
+                document.getElementById('upload-category-select').focus();
+                return;
+            }
+            document.getElementById('file-input').click();
+        }
+
         function handleFileUpload(event) {
             const fileList = event.target.files;
             if (!fileList.length) return;
 
-            const files = getData(STORAGE_KEYS.FILES);
             const selectedCategory = document.getElementById('upload-category-select').value;
+            if (!selectedCategory) {
+                alert('⚠️ 请先选择文件分类！');
+                event.target.value = '';
+                return;
+            }
+
+            const files = getData(STORAGE_KEYS.FILES);
+            lastUploadedImageIds = [];
 
             Array.from(fileList).forEach(file => {
                 // 检查是否已存在同名文件
@@ -3154,23 +3212,100 @@
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    const fileId = Date.now() + Math.random();
                     files.push({
-                        id: Date.now() + Math.random(),
+                        id: fileId,
                         name: file.name,
                         type: file.type,
                         size: file.size,
                         data: e.target.result,
-                        category: selectedCategory || null,
+                        category: selectedCategory,
                         uploadedAt: new Date().toISOString()
                     });
+
+                    // 检查是否是图片
+                    if (isImageFile(file.type)) {
+                        lastUploadedImageIds.push(fileId);
+                    }
+
                     saveData(STORAGE_KEYS.FILES, files);
                     renderCategoryFilters();
                     renderFiles();
+
+                    // 如果有图片上传，打开预览
+                    if (lastUploadedImageIds.length > 0) {
+                        setTimeout(() => {
+                            showImagePreview(lastUploadedImageIds);
+                        }, 100);
+                    }
                 };
                 reader.readAsDataURL(file);
             });
 
             event.target.value = '';
+        }
+
+        // 判断是否是图片文件
+        function isImageFile(type) {
+            return type && type.startsWith('image/');
+        }
+
+        // 显示图片预览模态框
+        function showImagePreview(imageIds) {
+            const files = getData(STORAGE_KEYS.FILES);
+            const images = imageIds.map(id => files.find(f => f.id === id)).filter(Boolean);
+
+            if (images.length === 0) return;
+
+            let content = '<div class="image-preview-grid">';
+            images.forEach(img => {
+                content += `
+                    <div class="image-preview-item">
+                        <img src="${img.data}" alt="${escapeHtml(img.name)}" onclick="viewFullImage('${img.data}')">
+                        <div class="image-preview-name">${escapeHtml(img.name)}</div>
+                    </div>
+                `;
+            });
+            content += '</div>';
+
+            document.getElementById('image-preview-content').innerHTML = content;
+            document.getElementById('image-preview-modal').classList.add('active');
+        }
+
+        // 全屏查看单张图片
+        function viewFullImage(src) {
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html>
+                <head>
+                    <title>图片预览</title>
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 100vh;
+                            background: #1a1a1a;
+                        }
+                        img {
+                            max-width: 100%;
+                            max-height: 90vh;
+                            object-fit: contain;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <img src="${src}" alt="预览图片">
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+
+        function closeImagePreview() {
+            document.getElementById('image-preview-modal').classList.remove('active');
         }
 
         function deleteFile(id) {
