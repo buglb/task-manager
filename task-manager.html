@@ -1946,6 +1946,10 @@
                 return t.completed && t.date === today;
             }).length;
 
+            // 计算颜色：绿色(>70%)、黄色(30-70%)、红色(<30%)
+            const percent = todayCount > 0 ? todayCompleted / todayCount : 0;
+            const progressColor = percent >= 0.7 ? 'var(--success)' : percent >= 0.3 ? 'var(--warning)' : 'var(--danger)';
+            
             document.getElementById('todo-stats').innerHTML = `
                 <div class="stat-item" style="min-width: 120px;">
                     <div class="stat-num">${todayCount}</div>
@@ -1954,11 +1958,14 @@
                 <div class="stat-item" style="min-width: 140px;">
                     <div class="circular-progress" id="daily-progress">
                         <svg viewBox="0 0 100 100">
-                            <circle class="bg-circle" cx="50" cy="50" r="42"/>
-                            <circle class="progress-circle ${todayCount === 0 ? 'progress-high' : todayCompleted / todayCount >= 0.7 ? 'progress-high' : todayCompleted / todayCount >= 0.3 ? 'progress-mid' : 'progress-low'}" 
-                                cx="50" cy="50" r="42"
-                                stroke-dasharray="${264}"
-                                stroke-dashoffset="${264 - (todayCount > 0 ? Math.round((todayCompleted / todayCount) * 264) : 0)}"/>
+                            <circle class="bg-circle" cx="50" cy="50" r="40"/>
+                            <circle cx="50" cy="50" r="40"
+                                fill="none"
+                                stroke="${progressColor}"
+                                stroke-width="8"
+                                stroke-linecap="round"
+                                stroke-dasharray="251.2 502.4"
+                                stroke-dashoffset="${251.2 - (todayCount > 0 ? 251.2 * todayCompleted / todayCount : 0)}"/>
                         </svg>
                         <div class="progress-text">
                             <span class="progress-percent">${todayCount > 0 ? Math.round((todayCompleted / todayCount) * 100) : 0}%</span>
