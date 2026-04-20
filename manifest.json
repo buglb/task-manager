@@ -1,0 +1,26 @@
+{
+  "name": "啊滨的任务管理",
+  "short_name": "任务管理",
+  "description": "啊滨的个人任务管理工具，支持待办清单、日历、长期计划和资料管理",
+  "start_url": "./task-manager.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4A90D9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "zh-CN"
+}

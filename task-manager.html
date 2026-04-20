@@ -1,0 +1,2743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>啊滨的任务管理</title>
+    
+    <!-- PWA 主题色 -->
+    <meta name="theme-color" content="#4A90D9">
+    <meta name="msapplication-TileColor" content="#4A90D9">
+    
+    <!-- iOS PWA 支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="任务管理">
+    
+    <!-- Windows PWA 支持 -->
+    <meta name="msapplication-TileImage" content="icon-144.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- 应用描述 -->
+    <meta name="description" content="啊滨的个人任务管理工具，支持待办清单、日历、长期计划和资料管理">
+    
+    <!-- 图标 -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4A90D9;
+            --primary-light: #E8F2FC;
+            --success: #52C41A;
+            --warning: #FAAD14;
+            --danger: #FF4D4F;
+            --text: #333;
+            --text-light: #666;
+            --border: #E8E8E8;
+            --bg: #F7F8FA;
+            --white: #FFF;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* 头部 */
+        .header {
+            background: var(--white);
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header h1::before {
+            content: '📋';
+        }
+
+        .user-badge {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* 底部导航 */
+        .nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            display: flex;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+            z-index: 100;
+        }
+
+        .nav-item {
+            flex: 1;
+            padding: 10px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            display: block;
+            margin-bottom: 4px;
+            transition: transform 0.2s;
+        }
+
+        /* 主内容区 */
+        .main {
+            padding: 16px;
+            padding-bottom: 80px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 筛选标签 */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        /* 待办项 */
+        .todo-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: var(--bg);
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .todo-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+        }
+
+        .todo-checkbox {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .todo-item.completed .todo-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .todo-checkbox::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+            display: none;
+        }
+
+        .todo-item.completed .todo-checkbox::after {
+            display: block;
+        }
+
+        .todo-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .todo-text {
+            font-size: 15px;
+            word-break: break-word;
+        }
+
+        .todo-meta {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .todo-priority {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .priority-high { background: #FFF1F0; color: var(--danger); }
+        .priority-medium { background: #FFFBE6; color: var(--warning); }
+        .priority-low { background: #F6FFED; color: var(--success); }
+
+        .todo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-edit { background: var(--primary-light); color: var(--primary); }
+        .btn-delete { background: #FFF1F0; color: var(--danger); }
+
+        /* 添加任务表单 */
+        .add-form {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .add-form input,
+        .add-form select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .add-form input:focus,
+        .add-form select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .form-row > * {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-add:hover {
+            background: #3A7BC8;
+        }
+
+        /* 日历 */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .calendar-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .calendar-nav button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--white);
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .calendar-nav button:hover {
+            background: var(--primary-light);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: var(--primary-light);
+        }
+
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+
+        .calendar-day.today {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .calendar-day.today:hover {
+            background: #3A7BC8;
+        }
+
+        .calendar-day.has-task::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--danger);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 4px;
+        }
+
+        .calendar-day.today.has-task::after {
+            background: var(--white);
+        }
+
+        .calendar-day.selected {
+            background: var(--primary-light);
+            border: 2px solid var(--primary);
+        }
+
+        .day-tasks {
+            margin-top: 16px;
+        }
+
+        .day-tasks-title {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        /* 长期计划看板 */
+        .plan-item {
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .plan-item.warning {
+            border-left-color: var(--warning);
+        }
+
+        .plan-item.danger {
+            border-left-color: var(--danger);
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .plan-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .plan-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .status-progress { background: var(--primary-light); color: var(--primary); }
+        .status-warning { background: #FFF7E6; color: var(--warning); }
+        .status-stuck { background: #FFF1F0; color: var(--danger); }
+
+        .plan-progress {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .plan-progress-bar {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .plan-item.warning .plan-progress-bar {
+            background: var(--warning);
+        }
+
+        .plan-item.danger .plan-progress-bar {
+            background: var(--danger);
+        }
+
+        .plan-meta {
+            font-size: 12px;
+            color: var(--text-light);
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* 资料库 */
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .file-item {
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .file-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .file-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+
+        .file-name {
+            font-size: 13px;
+            word-break: break-all;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .file-size {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        .file-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255,77,79,0.1);
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--danger);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .file-item:hover .file-delete {
+            opacity: 1;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+        }
+
+        /* 统计 */
+        .stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            flex: 1;
+            min-width: 80px;
+            background: var(--white);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .stat-num {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-num.success { color: var(--success); }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* 每日重复任务样式 */
+        .todo-item.daily {
+            border-left: 3px solid var(--warning);
+        }
+
+        .todo-daily-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #FF9A56, #FF6B6B);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .todo-daily-badge .streak {
+            font-weight: 700;
+        }
+
+        .todo-daily-badge.inactive {
+            background: var(--border);
+            color: var(--text-light);
+        }
+
+        .todo-daily-badge.inactive .streak {
+            font-weight: 500;
+        }
+
+        /* 重复选项样式 */
+        .repeat-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .repeat-toggle label {
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .repeat-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .repeat-toggle .hint {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* 计划关联资料样式 */
+        .plan-attachments {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .plan-attachments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+
+        .plan-attachments-header:hover {
+            color: var(--primary);
+        }
+
+        .plan-attachments-toggle {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .plan-attachments-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        .plan-attachment-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .plan-attachment-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .plan-attachment-item:hover {
+            background: var(--primary-light);
+        }
+
+        .plan-attachment-item .remove-btn {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,77,79,0.15);
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .plan-attachment-item:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .plan-add-attachment {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px dashed var(--primary);
+            transition: all 0.2s;
+        }
+
+        .plan-add-attachment:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 文件选择模态框样式 */
+        .file-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .file-picker-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 8px;
+            background: var(--bg);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .file-picker-item:hover {
+            background: var(--primary-light);
+        }
+
+        .file-picker-item.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .file-picker-item .check-mark {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-picker-item .file-icon {
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        .file-picker-item .file-name {
+            font-size: 11px;
+            text-align: center;
+            word-break: break-all;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* 资料库引用显示 */
+        .file-linked-plans {
+            font-size: 11px;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        /* 分类筛选样式 */
+        .category-section {
+            margin-bottom: 16px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .category-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-title .folder-icon {
+            font-size: 18px;
+        }
+
+        .btn-create-category {
+            padding: 6px 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px dashed var(--primary);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-create-category:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .category-filter-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .category-filter-tab {
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .category-filter-tab:hover {
+            border-color: var(--primary);
+        }
+
+        .category-filter-tab.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .category-filter-tab .count {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .category-filter-tab:not(.active) .count {
+            background: var(--bg);
+        }
+
+        /* 分类管理弹窗 */
+        .category-manager {
+            padding: 10px 0;
+        }
+
+        .category-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .category-list-item .cat-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .category-list-item .cat-count {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .category-list-item .cat-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .category-list-item .cat-actions button {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cat-btn-edit { background: var(--primary-light); color: var(--primary); }
+        .cat-btn-delete { background: #FFF1F0; color: var(--danger); }
+
+        /* 文件分类标签选择 */
+        .file-category-select {
+            margin: 12px 0;
+        }
+
+        .file-category-select label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+
+        .file-category-select select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg);
+        }
+
+        /* 提醒功能样式 */
+        .todo-reminder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: #FFF3E0;
+            color: #E65100;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .todo-reminder-badge:hover {
+            background: #FFE0B2;
+        }
+
+        .reminder-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #FFF8E1;
+            border-radius: 8px;
+        }
+
+        .reminder-toggle label {
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #E65100;
+        }
+
+        .reminder-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .reminder-toggle .hint {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* 通知授权提示 */
+        .notification-permission-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .notification-permission-banner .banner-text {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-permission-banner .btn-allow {
+            padding: 8px 16px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .notification-permission-banner.hidden {
+            display: none;
+        }
+
+        /* PWA 安装提示横幅 */
+        .pwa-install-banner {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(74, 144, 217, 0.3);
+        }
+
+        .pwa-install-banner.hidden {
+            display: none;
+        }
+
+        .pwa-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pwa-banner-icon {
+            font-size: 24px;
+        }
+
+        .pwa-banner-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .pwa-banner-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pwa-btn-install {
+            padding: 8px 16px;
+            background: white;
+            color: var(--primary);
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .pwa-btn-close {
+            width: 28px;
+            height: 28px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pwa-btn-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .header { padding: 12px 16px; }
+            .header h1 { font-size: 18px; }
+            .main { padding: 12px; padding-bottom: 75px; }
+            .card { padding: 14px; }
+            .form-row { flex-direction: column; }
+            .form-row > * { min-width: 100%; }
+            .file-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (min-width: 768px) {
+            .main { padding: 24px; }
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- PWA 安装提示横幅 -->
+    <div class="pwa-install-banner hidden" id="pwa-install-banner">
+        <div class="pwa-banner-content">
+            <span class="pwa-banner-icon">📱</span>
+            <span class="pwa-banner-text">添加到桌面，像App一样使用</span>
+        </div>
+        <div class="pwa-banner-actions">
+            <button class="pwa-btn-install" id="pwa-install-btn">安装</button>
+            <button class="pwa-btn-close" onclick="closePwaBanner()">×</button>
+        </div>
+    </div>
+
+    <header class="header">
+        <h1>啊滨的任务管理</h1>
+        <div class="user-badge">📦 智能柜销售</div>
+    </header>
+
+    <main class="main">
+        <!-- 待办清单页面 -->
+        <div class="page active" id="page-todo">
+            <div class="notification-permission-banner hidden" id="notification-banner">
+                <div class="banner-text">
+                    🔔 开启通知提醒，不错过任何待办
+                </div>
+                <button class="btn-allow" onclick="requestNotificationPermission()">开启提醒</button>
+            </div>
+
+            <div class="stats" id="todo-stats"></div>
+
+            <div class="add-form">
+                <input type="text" id="todo-input" placeholder="添加新任务..." maxlength="200">
+                <div class="form-row">
+                    <input type="date" id="todo-date">
+                    <select id="todo-priority">
+                        <option value="low">🟢 低优先级</option>
+                        <option value="medium" selected>🟡 中优先级</option>
+                        <option value="high">🔴 高优先级</option>
+                    </select>
+                </div>
+                <div class="repeat-toggle">
+                    <label>
+                        <input type="checkbox" id="todo-repeat">
+                        🔄 每日重复
+                    </label>
+                    <span class="hint">每天自动出现，坚持打卡养成好习惯</span>
+                </div>
+                <div class="reminder-toggle">
+                    <label>
+                        <input type="checkbox" id="todo-reminder">
+                        🔔 每小时提醒
+                    </label>
+                    <span class="hint">开启后每小时提醒一次</span>
+                </div>
+                <button class="btn-add" onclick="addTodo()">添加任务</button>
+            </div>
+
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="today">今天</button>
+                <button class="filter-tab" data-filter="week">本周</button>
+                <button class="filter-tab" data-filter="all">全部</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📝 待办清单</div>
+                <div id="todo-list"></div>
+            </div>
+        </div>
+
+        <!-- 日历页面 -->
+        <div class="page" id="page-calendar">
+            <div class="card">
+                <div class="calendar-header">
+                    <span class="calendar-title" id="calendar-title"></span>
+                    <div class="calendar-nav">
+                        <button onclick="changeMonth(-1)">◀</button>
+                        <button onclick="changeMonth(1)">▶</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendar-weekdays">
+                    <div class="calendar-weekday">日</div>
+                    <div class="calendar-weekday">一</div>
+                    <div class="calendar-weekday">二</div>
+                    <div class="calendar-weekday">三</div>
+                    <div class="calendar-weekday">四</div>
+                    <div class="calendar-weekday">五</div>
+                    <div class="calendar-weekday">六</div>
+                </div>
+                <div class="calendar-grid" id="calendar-days"></div>
+                <div class="day-tasks" id="day-tasks"></div>
+            </div>
+        </div>
+
+        <!-- 长期计划页面 -->
+        <div class="page" id="page-plans">
+            <div class="card">
+                <div class="card-title">🎯 长期计划看板</div>
+                <button class="btn-add" onclick="showPlanModal()" style="margin-bottom: 16px;">添加新计划</button>
+                <div id="plan-list"></div>
+            </div>
+        </div>
+
+        <!-- 资料库页面 -->
+        <div class="page" id="page-files">
+            <div class="card">
+                <div class="category-header">
+                    <div class="category-title">📁 资料库</div>
+                    <div>
+                        <button class="btn-create-category" onclick="showCategoryModal()">📂 管理分类</button>
+                    </div>
+                </div>
+
+                <!-- 分类筛选 -->
+                <div class="category-filter-tabs" id="category-filter-tabs">
+                    <button class="category-filter-tab active" data-category="all">
+                        全部 <span class="count" id="count-all">0</span>
+                    </button>
+                </div>
+
+                <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">点击上传文件</div>
+                </div>
+                <input type="file" id="file-input" multiple style="display: none;" onchange="handleFileUpload(event)">
+                <div class="file-grid" id="file-list" style="margin-top: 16px;"></div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="nav">
+        <button class="nav-item active" data-page="todo">
+            <span class="nav-icon">📝</span>
+            <span>待办</span>
+        </button>
+        <button class="nav-item" data-page="calendar">
+            <span class="nav-icon">📅</span>
+            <span>日历</span>
+        </button>
+        <button class="nav-item" data-page="plans">
+            <span class="nav-icon">🎯</span>
+            <span>计划</span>
+        </button>
+        <button class="nav-item" data-page="files">
+            <span class="nav-icon">📁</span>
+            <span>资料</span>
+        </button>
+    </nav>
+
+    <!-- 编辑任务模态框 -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">编辑任务</span>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <input type="hidden" id="edit-id">
+            <div class="add-form" style="box-shadow: none; padding: 0;">
+                <input type="text" id="edit-text" placeholder="任务内容..." maxlength="200">
+                <div class="form-row">
+                    <input type="date" id="edit-date">
+                    <select id="edit-priority">
+                        <option value="low">🟢 低优先级</option>
+                        <option value="medium">🟡 中优先级</option>
+                        <option value="high">🔴 高优先级</option>
+                    </select>
+                </div>
+                <div class="repeat-toggle">
+                    <label>
+                        <input type="checkbox" id="edit-repeat">
+                        🔄 每日重复
+                    </label>
+                    <span class="hint">每天自动出现</span>
+                </div>
+                <div class="reminder-toggle">
+                    <label>
+                        <input type="checkbox" id="edit-reminder">
+                        🔔 每小时提醒
+                    </label>
+                    <span class="hint">开启后每小时提醒</span>
+                </div>
+                <button class="btn-add" onclick="saveEdit()">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类管理模态框 -->
+    <div class="modal" id="category-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">📂 管理分类</span>
+                <button class="modal-close" onclick="closeCategoryModal()">×</button>
+            </div>
+            <div class="add-form" style="box-shadow: none; padding: 0;">
+                <div class="form-row">
+                    <input type="text" id="new-category-name" placeholder="输入分类名称..." maxlength="20">
+                    <button class="btn-add" onclick="addCategory()" style="flex: 0; width: auto; padding: 12px 20px;">添加</button>
+                </div>
+            </div>
+            <div class="category-manager" id="category-manager-list"></div>
+        </div>
+    </div>
+
+    <!-- 添加计划模态框 -->
+    <div class="modal" id="plan-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="plan-modal-title">添加新计划</span>
+                <button class="modal-close" onclick="closePlanModal()">×</button>
+            </div>
+            <input type="hidden" id="plan-edit-id">
+            <div class="add-form" style="box-shadow: none; padding: 0;">
+                <input type="text" id="plan-title" placeholder="计划名称..." maxlength="50">
+                <textarea id="plan-desc" placeholder="计划描述（可选）..." style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; margin-bottom: 10px; min-height: 80px; resize: vertical;"></textarea>
+                <div class="form-row">
+                    <input type="number" id="plan-progress" placeholder="进度 %" min="0" max="100" value="0">
+                    <select id="plan-status">
+                        <option value="progress">进行中</option>
+                        <option value="warning">遇到问题</option>
+                        <option value="stuck">停滞不前</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="date" id="plan-deadline" placeholder="截止日期">
+                </div>
+                <button class="btn-add" onclick="savePlan()">保存计划</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件选择模态框 -->
+    <div class="modal" id="file-picker-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">📎 选择关联资料</span>
+                <button class="modal-close" onclick="closeFilePicker()">×</button>
+            </div>
+            <input type="hidden" id="file-picker-plan-id">
+            <div id="file-picker-list"></div>
+            <div style="margin-top: 16px; display: flex; gap: 10px;">
+                <button class="btn-add" onclick="confirmFileSelection()" style="flex: 1;">确认选择</button>
+                <button class="btn-add" onclick="closeFilePicker()" style="flex: 1; background: var(--text-light);">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 数据存储
+        const STORAGE_KEYS = {
+            TODOS: 'abin_todos',
+            PLANS: 'abin_plans',
+            FILES: 'abin_files',
+            CATEGORIES: 'abin_categories'
+        };
+
+        // 提醒相关变量
+        let reminderInterval = null;
+        let currentFilterCategory = 'all';
+
+        // 获取数据
+        function getData(key) {
+            try {
+                return JSON.parse(localStorage.getItem(key)) || [];
+            } catch {
+                return [];
+            }
+        }
+
+        // 保存数据
+        function saveData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        // 初始化日期输入框为今天
+        function initDateInput() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('todo-date').value = today;
+        }
+
+        // ==================== 待办事项 ====================
+        let currentFilter = 'today';
+
+        function getTodayStr() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getWeekRange() {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            return { start: monday.toISOString().split('T')[0], end: sunday.toISOString().split('T')[0] };
+        }
+
+        function filterTodos(todos) {
+            const today = getTodayStr();
+            const week = getWeekRange();
+
+            return todos.filter(todo => {
+                // 每日重复任务：始终显示（只要不是未来的日期）
+                if (todo.repeat === 'daily') {
+                    if (currentFilter === 'today') {
+                        return true; // 今天需要显示
+                    } else if (currentFilter === 'week') {
+                        return todo.date <= week.end; // 本周内创建的都显示
+                    }
+                    return true; // 全部显示
+                }
+
+                // 普通任务
+                if (currentFilter === 'today') {
+                    return todo.date === today;
+                } else if (currentFilter === 'week') {
+                    return todo.date >= week.start && todo.date <= week.end;
+                }
+                return true;
+            });
+        }
+
+        function getStreakDays(todo) {
+            if (!todo.completedDates || todo.completedDates.length === 0) return 0;
+
+            const sortedDates = [...todo.completedDates].sort().reverse();
+            const today = getTodayStr();
+
+            // 检查今天是否已完成
+            const todayCompleted = sortedDates[0] === today;
+            let streak = 0;
+            let checkDate = today;
+
+            // 从今天往前数
+            for (let i = 0; i < 365; i++) {
+                if (sortedDates.includes(checkDate)) {
+                    streak++;
+                    // 前一天
+                    const d = new Date(checkDate);
+                    d.setDate(d.getDate() - 1);
+                    checkDate = d.toISOString().split('T')[0];
+                } else if (i === 0) {
+                    // 今天没完成，不算中断，继续检查昨天
+                    const d = new Date(checkDate);
+                    d.setDate(d.getDate() - 1);
+                    checkDate = d.toISOString().split('T')[0];
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        function renderTodos() {
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const filtered = filterTodos(todos);
+            const listEl = document.getElementById('todo-list');
+            const today = getTodayStr();
+
+            // 统计（只统计今天的任务和每日重复任务）
+            const todayRegularTodos = todos.filter(t => t.date === today && t.repeat !== 'daily' && !t.completed);
+            const todayDailyTodos = todos.filter(t => t.repeat === 'daily' && !t.completedDates?.includes(today));
+            const todayCount = todayRegularTodos.length + todayDailyTodos.length;
+
+            // 统计今日已打卡
+            const todayCompleted = todos.filter(t => {
+                if (t.repeat === 'daily') {
+                    return t.completedDates?.includes(today);
+                }
+                return t.completed && t.date === today;
+            }).length;
+
+            document.getElementById('todo-stats').innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-num">${todayCount}</div>
+                    <div class="stat-label">今日待办</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num success">${todayCompleted}</div>
+                    <div class="stat-label">今日已打卡</div>
+                </div>
+            `;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">暂无任务，添加一个开始吧！</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // 处理每日重复任务的完成状态（按日期）
+            const processedTodos = filtered.map(todo => {
+                if (todo.repeat === 'daily') {
+                    return {
+                        ...todo,
+                        isCompletedToday: todo.completedDates?.includes(today) || false,
+                        streak: getStreakDays(todo)
+                    };
+                }
+                return { ...todo, isCompletedToday: todo.completed, streak: 0 };
+            });
+
+            // 按完成状态和日期排序
+            processedTodos.sort((a, b) => {
+                if (a.isCompletedToday !== b.isCompletedToday) return a.isCompletedToday ? 1 : -1;
+                if (a.repeat === 'daily' && b.repeat !== 'daily') return 1;
+                if (a.repeat !== 'daily' && b.repeat === 'daily') return -1;
+                return a.date.localeCompare(b.date);
+            });
+
+            listEl.innerHTML = processedTodos.map(todo => `
+                <div class="todo-item ${todo.isCompletedToday ? 'completed' : ''} ${todo.repeat === 'daily' ? 'daily' : ''}">
+                    <div class="todo-checkbox" onclick="toggleTodo(${todo.id})"></div>
+                    <div class="todo-content">
+                        <div class="todo-text">${escapeHtml(todo.text)}</div>
+                        <div class="todo-meta">
+                            ${todo.repeat === 'daily' ? `
+                                <span class="todo-daily-badge ${todo.isCompletedToday ? 'inactive' : ''}">
+                                    🔄 ${todo.isCompletedToday ? '已打卡' : '打卡'} <span class="streak">${todo.streak}</span>天
+                                </span>
+                            ` : `
+                                <span>📅 ${formatDate(todo.date)}</span>
+                            `}
+                            <span class="todo-priority priority-${todo.priority}">
+                                ${todo.priority === 'high' ? '🔴 高' : todo.priority === 'medium' ? '🟡 中' : '🟢 低'}
+                            </span>
+                            ${todo.reminder && !todo.isCompletedToday ? `
+                                <span class="todo-reminder-badge" onclick="toggleReminder(${todo.id}, event)">
+                                    🔔 提醒中（点击关闭）
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="todo-actions">
+                        <button class="btn-icon btn-edit" onclick="editTodo(${todo.id})">✏️</button>
+                        <button class="btn-icon btn-delete" onclick="deleteTodo(${todo.id})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addTodo() {
+            const input = document.getElementById('todo-input');
+            const date = document.getElementById('todo-date');
+            const priority = document.getElementById('todo-priority');
+            const repeat = document.getElementById('todo-repeat');
+            const reminder = document.getElementById('todo-reminder');
+
+            const text = input.value.trim();
+            if (!text) {
+                input.focus();
+                return;
+            }
+
+            const isDaily = repeat.checked;
+            const hasReminder = reminder.checked;
+            const todos = getData(STORAGE_KEYS.TODOS);
+            todos.push({
+                id: Date.now(),
+                text,
+                date: isDaily ? getTodayStr() : (date.value || getTodayStr()),
+                priority: priority.value,
+                repeat: isDaily ? 'daily' : null,
+                completedDates: [],
+                reminder: hasReminder,
+                lastReminderSent: null,
+                createdAt: new Date().toISOString()
+            });
+
+            saveData(STORAGE_KEYS.TODOS, todos);
+            input.value = '';
+            repeat.checked = false;
+            reminder.checked = false;
+            initDateInput();
+            renderTodos();
+            startReminderChecker();
+        }
+
+        function toggleTodo(id) {
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                const today = getTodayStr();
+
+                // 每日重复任务：按日期打卡/取消
+                if (todo.repeat === 'daily') {
+                    if (!todo.completedDates) todo.completedDates = [];
+                    const idx = todo.completedDates.indexOf(today);
+                    if (idx === -1) {
+                        todo.completedDates.push(today);
+                    } else {
+                        todo.completedDates.splice(idx, 1);
+                    }
+                } else {
+                    // 普通任务
+                    todo.completed = !todo.completed;
+                    todo.completedAt = todo.completed ? new Date().toISOString() : null;
+                }
+
+                saveData(STORAGE_KEYS.TODOS, todos);
+                renderTodos();
+            }
+        }
+
+        function editTodo(id) {
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                document.getElementById('edit-id').value = id;
+                document.getElementById('edit-text').value = todo.text;
+                document.getElementById('edit-date').value = todo.date;
+                document.getElementById('edit-priority').value = todo.priority;
+                document.getElementById('edit-repeat').checked = todo.repeat === 'daily';
+                document.getElementById('edit-reminder').checked = todo.reminder === true;
+                document.getElementById('edit-modal').classList.add('active');
+            }
+        }
+
+        function saveEdit() {
+            const id = parseInt(document.getElementById('edit-id').value);
+            const text = document.getElementById('edit-text').value.trim();
+            const date = document.getElementById('edit-date').value;
+            const priority = document.getElementById('edit-priority').value;
+            const repeat = document.getElementById('edit-repeat');
+            const reminder = document.getElementById('edit-reminder');
+
+            if (!text) return;
+
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                const isDaily = repeat.checked;
+                todo.text = text;
+                todo.date = isDaily ? getTodayStr() : date;
+                todo.priority = priority;
+                todo.repeat = isDaily ? 'daily' : null;
+                todo.reminder = reminder.checked;
+                saveData(STORAGE_KEYS.TODOS, todos);
+                closeEditModal();
+                renderTodos();
+                startReminderChecker();
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        function deleteTodo(id) {
+            if (!confirm('确定要删除这个任务吗？')) return;
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const filtered = todos.filter(t => t.id !== id);
+            saveData(STORAGE_KEYS.TODOS, filtered);
+            renderTodos();
+        }
+
+        // ==================== 提醒功能 ====================
+        function toggleReminder(id, event) {
+            if (event) event.stopPropagation();
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.reminder = !todo.reminder;
+                saveData(STORAGE_KEYS.TODOS, todos);
+                renderTodos();
+                startReminderChecker();
+            }
+        }
+
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('您的浏览器不支持通知功能');
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    document.getElementById('notification-banner').classList.add('hidden');
+                    startReminderChecker();
+                    // 发送测试通知
+                    new Notification('🔔 提醒已开启', {
+                        body: '您设置的待办任务将在每小时准点提醒您',
+                        icon: '🔔'
+                    });
+                } else {
+                    alert('您拒绝了通知权限，可以在浏览器设置中开启');
+                }
+            });
+        }
+
+        function checkNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                document.getElementById('notification-banner').classList.add('hidden');
+                return true;
+            } else if ('Notification' in window && Notification.permission !== 'denied') {
+                // 显示授权提示
+                document.getElementById('notification-banner').classList.remove('hidden');
+            }
+            return false;
+        }
+
+        function sendReminderNotification() {
+            if (!('Notification' in window) || Notification.permission !== 'granted') {
+                return;
+            }
+
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const today = getTodayStr();
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            // 每小时提醒一次（在整点前后5分钟内）
+            if (currentMinute >= 0 && currentMinute <= 5) {
+                todos.forEach(todo => {
+                    if (!todo.reminder) return;
+
+                    // 检查是否已完成
+                    const isCompleted = todo.repeat === 'daily'
+                        ? (todo.completedDates?.includes(today))
+                        : (todo.completed && todo.date === today);
+
+                    if (isCompleted) return;
+
+                    // 检查是否刚提醒过（同一小时内不重复提醒）
+                    const lastSent = todo.lastReminderSent ? new Date(todo.lastReminderSent) : null;
+                    if (lastSent) {
+                        const hourDiff = (now - lastSent) / (1000 * 60 * 60);
+                        if (hourDiff < 1) return;
+                    }
+
+                    // 发送通知
+                    const notification = new Notification(`📝 待办提醒 - ${currentHour}:00`, {
+                        body: todo.text,
+                        icon: '📋',
+                        tag: `todo-${todo.id}`,
+                        requireInteraction: true
+                    });
+
+                    notification.onclick = function() {
+                        window.focus();
+                        notification.close();
+                    };
+
+                    // 更新最后提醒时间
+                    todo.lastReminderSent = now.toISOString();
+                });
+
+                saveData(STORAGE_KEYS.TODOS, todos);
+            }
+        }
+
+        function startReminderChecker() {
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const hasReminder = todos.some(t => t.reminder);
+
+            if (hasReminder && 'Notification' in window && Notification.permission === 'granted') {
+                if (!reminderInterval) {
+                    // 每分钟检查一次
+                    reminderInterval = setInterval(sendReminderNotification, 60000);
+                    // 立即检查一次
+                    sendReminderNotification();
+                }
+            } else {
+                if (reminderInterval) {
+                    clearInterval(reminderInterval);
+                    reminderInterval = null;
+                }
+            }
+        }
+
+        // ==================== 日历 ====================
+        let currentMonth = new Date();
+        let selectedDate = null;
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const today = new Date();
+
+            document.getElementById('calendar-title').textContent = `${year}年${month + 1}月`;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDay = firstDay.getDay();
+            const totalDays = lastDay.getDate();
+
+            const todos = getData(STORAGE_KEYS.TODOS);
+            // 普通任务日期
+            const taskDates = new Set(todos.filter(t => t.repeat !== 'daily').map(t => t.date));
+            // 每日重复任务：每天都有
+            const hasDailyTask = todos.some(t => t.repeat === 'daily');
+
+            let html = '';
+            let dayCount = 1;
+
+            // 上月空白
+            for (let i = 0; i < startDay; i++) {
+                const prevDate = new Date(year, month, -startDay + i + 1);
+                html += `<div class="calendar-day other-month">${prevDate.getDate()}</div>`;
+            }
+
+            // 当月日期
+            for (let i = 1; i <= totalDays; i++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const isToday = year === today.getFullYear() && month === today.getMonth() && i === today.getDate();
+                const hasTask = taskDates.has(dateStr) || (hasDailyTask && dateStr <= today.toISOString().split('T')[0]);
+                const isSelected = selectedDate === dateStr;
+
+                let classes = 'calendar-day';
+                if (isToday) classes += ' today';
+                if (hasTask) classes += ' has-task';
+                if (isSelected) classes += ' selected';
+
+                html += `<div class="${classes}" onclick="selectDate('${dateStr}')">${i}</div>`;
+            }
+
+            // 补足空白
+            const remaining = 42 - (startDay + totalDays);
+            for (let i = 1; i <= remaining; i++) {
+                html += `<div class="calendar-day other-month">${i}</div>`;
+            }
+
+            document.getElementById('calendar-days').innerHTML = html;
+
+            // 显示选中日期的任务
+            if (selectedDate) {
+                renderDayTasks(selectedDate);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentMonth.setMonth(currentMonth.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function selectDate(dateStr) {
+            selectedDate = dateStr;
+            renderCalendar();
+        }
+
+        function renderDayTasks(dateStr) {
+            const todos = getData(STORAGE_KEYS.TODOS);
+            // 普通任务：当天创建的任务
+            const dayTodos = todos.filter(t => t.date === dateStr && t.repeat !== 'daily');
+            // 每日重复任务：所有每日任务都显示在该日期
+            const dailyTodos = todos.filter(t => t.repeat === 'daily');
+
+            const container = document.getElementById('day-tasks');
+            const allDayTodos = [...dailyTodos.map(t => ({
+                ...t,
+                isDaily: true,
+                isCompleted: t.completedDates?.includes(dateStr) || false
+            })), ...dayTodos.map(t => ({ ...t, isDaily: false, isCompleted: t.completed }))];
+
+            const totalCount = allDayTodos.length;
+
+            container.innerHTML = `
+                <div class="day-tasks-title">📅 ${formatDate(dateStr)} 的任务 (${totalCount}个)</div>
+                ${totalCount === 0 ? '<div class="empty-state"><div class="empty-state-text">这天没有任务</div></div>' : ''}
+                ${allDayTodos.map(todo => `
+                    <div class="todo-item ${todo.isCompleted ? 'completed' : ''} ${todo.isDaily ? 'daily' : ''}">
+                        <div class="todo-checkbox" onclick="toggleTodo(${todo.id}); renderCalendar();"></div>
+                        <div class="todo-content">
+                            <div class="todo-text">${escapeHtml(todo.text)}</div>
+                            <div class="todo-meta">
+                                ${todo.isDaily ? `
+                                    <span class="todo-daily-badge ${todo.isCompleted ? 'inactive' : ''}">
+                                        🔄 ${todo.isCompleted ? '已打卡' : '打卡'}
+                                    </span>
+                                ` : ''}
+                                <span class="todo-priority priority-${todo.priority}">
+                                    ${todo.priority === 'high' ? '🔴 高' : todo.priority === 'medium' ? '🟡 中' : '🟢 低'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // ==================== 长期计划 ====================
+        function renderPlans() {
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const files = getData(STORAGE_KEYS.FILES);
+            const container = document.getElementById('plan-list');
+
+            if (plans.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎯</div>
+                        <div class="empty-state-text">暂无长期计划，设定一个目标吧！</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = plans.map(plan => {
+                let statusClass = '';
+                let statusText = '进行中';
+                if (plan.status === 'warning') {
+                    statusClass = 'warning';
+                    statusText = '遇到问题';
+                } else if (plan.status === 'stuck') {
+                    statusClass = 'danger';
+                    statusText = '停滞不前';
+                }
+
+                // 获取计划的关联资料
+                const attachments = (plan.attachments || []).map(attId => files.find(f => f.id === attId)).filter(Boolean);
+
+                return `
+                    <div class="plan-item ${statusClass}">
+                        <div class="plan-header">
+                            <span class="plan-title">${escapeHtml(plan.title)}</span>
+                            <span class="plan-status status-${plan.status}">${statusText}</span>
+                        </div>
+                        ${plan.desc ? `<p style="font-size: 13px; color: var(--text-light); margin-bottom: 8px;">${escapeHtml(plan.desc)}</p>` : ''}
+                        <div class="plan-progress">
+                            <div class="plan-progress-bar" style="width: ${plan.progress}%"></div>
+                        </div>
+                        <div class="plan-meta">
+                            <span>📊 ${plan.progress}%</span>
+                            ${plan.deadline ? `<span>📅 截止: ${formatDate(plan.deadline)}</span>` : ''}
+                        </div>
+                        <div class="plan-attachments">
+                            <div class="plan-attachments-header" onclick="toggleAttachments(${plan.id})">
+                                <span>📎 关联资料 (${attachments.length})</span>
+                                <span class="plan-attachments-toggle" id="toggle-${plan.id}">▼</span>
+                            </div>
+                            <div class="plan-attachment-list" id="attachments-${plan.id}" style="display: none;">
+                                ${attachments.length === 0 ? '<span style="font-size: 13px; color: var(--text-light);">暂无关联资料</span>' : attachments.map(att => `
+                                    <div class="plan-attachment-item" onclick="downloadFile(${att.id})">
+                                        ${getFileIcon(att.type)} ${escapeHtml(att.name.length > 15 ? att.name.substring(0, 15) + '...' : att.name)}
+                                        <button class="remove-btn" onclick="event.stopPropagation(); removeAttachment(${plan.id}, ${att.id})">×</button>
+                                    </div>
+                                `).join('')}
+                                <div class="plan-add-attachment" onclick="showFilePicker(${plan.id})">
+                                    + 添加资料
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            <button class="btn-icon btn-edit" onclick="editPlan(${plan.id})">✏️</button>
+                            <button class="btn-icon btn-delete" onclick="deletePlan(${plan.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleAttachments(planId) {
+            const list = document.getElementById(`attachments-${planId}`);
+            const toggle = document.getElementById(`toggle-${planId}`);
+            if (list.style.display === 'none') {
+                list.style.display = 'flex';
+                toggle.classList.add('expanded');
+            } else {
+                list.style.display = 'none';
+                toggle.classList.remove('expanded');
+            }
+        }
+
+        function showFilePicker(planId) {
+            document.getElementById('file-picker-plan-id').value = planId;
+            renderFilePicker(planId);
+            document.getElementById('file-picker-modal').classList.add('active');
+        }
+
+        function renderFilePicker(planId) {
+            const files = getData(STORAGE_KEYS.FILES);
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const plan = plans.find(p => p.id === planId);
+            const selectedIds = plan?.attachments || [];
+
+            const container = document.getElementById('file-picker-list');
+
+            if (files.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <div class="empty-state-text">资料库为空，请先上传文件</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="file-picker-grid">
+                    ${files.map(file => `
+                        <div class="file-picker-item ${selectedIds.includes(file.id) ? 'selected' : ''}" 
+                             onclick="toggleFileSelection(${file.id}, this)">
+                            ${selectedIds.includes(file.id) ? '<span class="check-mark">✓</span>' : ''}
+                            <div class="file-icon">${getFileIcon(file.type)}</div>
+                            <div class="file-name">${escapeHtml(file.name)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function toggleFileSelection(fileId, element) {
+            element.classList.toggle('selected');
+            const checkMark = element.querySelector('.check-mark');
+            if (checkMark) {
+                checkMark.remove();
+            } else {
+                const span = document.createElement('span');
+                span.className = 'check-mark';
+                span.textContent = '✓';
+                element.appendChild(span);
+            }
+        }
+
+        function confirmFileSelection() {
+            const planId = parseInt(document.getElementById('file-picker-plan-id').value);
+            const selectedItems = document.querySelectorAll('.file-picker-item.selected');
+            const selectedIds = Array.from(selectedItems).map(item => {
+                const files = getData(STORAGE_KEYS.FILES);
+                const fileName = item.querySelector('.file-name').textContent;
+                const file = files.find(f => f.name === fileName);
+                return file?.id;
+            }).filter(Boolean);
+
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const plan = plans.find(p => p.id === planId);
+            if (plan) {
+                plan.attachments = selectedIds;
+                saveData(STORAGE_KEYS.PLANS, plans);
+            }
+
+            closeFilePicker();
+            renderPlans();
+        }
+
+        function closeFilePicker() {
+            document.getElementById('file-picker-modal').classList.remove('active');
+        }
+
+        function removeAttachment(planId, fileId) {
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const plan = plans.find(p => p.id === planId);
+            if (plan) {
+                plan.attachments = (plan.attachments || []).filter(id => id !== fileId);
+                saveData(STORAGE_KEYS.PLANS, plans);
+                renderPlans();
+            }
+        }
+
+        function showPlanModal(id = null) {
+            document.getElementById('plan-edit-id').value = id || '';
+            document.getElementById('plan-modal-title').textContent = id ? '编辑计划' : '添加新计划';
+            document.getElementById('plan-title').value = '';
+            document.getElementById('plan-desc').value = '';
+            document.getElementById('plan-progress').value = '0';
+            document.getElementById('plan-status').value = 'progress';
+            document.getElementById('plan-deadline').value = '';
+            document.getElementById('plan-modal').classList.add('active');
+        }
+
+        function editPlan(id) {
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const plan = plans.find(p => p.id === id);
+            if (plan) {
+                document.getElementById('plan-edit-id').value = id;
+                document.getElementById('plan-modal-title').textContent = '编辑计划';
+                document.getElementById('plan-title').value = plan.title;
+                document.getElementById('plan-desc').value = plan.desc || '';
+                document.getElementById('plan-progress').value = plan.progress;
+                document.getElementById('plan-status').value = plan.status;
+                document.getElementById('plan-deadline').value = plan.deadline || '';
+                document.getElementById('plan-modal').classList.add('active');
+            }
+        }
+
+        function closePlanModal() {
+            document.getElementById('plan-modal').classList.remove('active');
+        }
+
+        function savePlan() {
+            const id = document.getElementById('plan-edit-id').value;
+            const title = document.getElementById('plan-title').value.trim();
+            const desc = document.getElementById('plan-desc').value.trim();
+            const progress = parseInt(document.getElementById('plan-progress').value) || 0;
+            const status = document.getElementById('plan-status').value;
+            const deadline = document.getElementById('plan-deadline').value;
+
+            if (!title) {
+                document.getElementById('plan-title').focus();
+                return;
+            }
+
+            const plans = getData(STORAGE_KEYS.PLANS);
+
+            if (id) {
+                const plan = plans.find(p => p.id === parseInt(id));
+                if (plan) {
+                    plan.title = title;
+                    plan.desc = desc;
+                    plan.progress = Math.min(100, Math.max(0, progress));
+                    plan.status = status;
+                    plan.deadline = deadline;
+                }
+            } else {
+                plans.push({
+                    id: Date.now(),
+                    title,
+                    desc,
+                    progress: Math.min(100, Math.max(0, progress)),
+                    status,
+                    deadline,
+                    attachments: [],
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            saveData(STORAGE_KEYS.PLANS, plans);
+            closePlanModal();
+            renderPlans();
+        }
+
+        function deletePlan(id) {
+            if (!confirm('确定要删除这个计划吗？')) return;
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const filtered = plans.filter(p => p.id !== id);
+            saveData(STORAGE_KEYS.PLANS, filtered);
+            renderPlans();
+        }
+
+        // ==================== 资料库 ====================
+        function renderCategoryFilters() {
+            const files = getData(STORAGE_KEYS.FILES);
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            const container = document.getElementById('category-filter-tabs');
+
+            // 统计每个分类的文件数量
+            const catCounts = {};
+            categories.forEach(cat => catCounts[cat.id] = 0);
+            let uncategorized = 0;
+            files.forEach(f => {
+                if (f.category) {
+                    catCounts[f.category] = (catCounts[f.category] || 0) + 1;
+                } else {
+                    uncategorized++;
+                }
+            });
+
+            let html = `
+                <button class="category-filter-tab ${currentFilterCategory === 'all' ? 'active' : ''}" data-category="all" onclick="filterByCategory('all')">
+                    全部 <span class="count">${files.length}</span>
+                </button>
+            `;
+
+            categories.forEach(cat => {
+                html += `
+                    <button class="category-filter-tab ${currentFilterCategory === cat.id ? 'active' : ''}" data-category="${cat.id}" onclick="filterByCategory('${cat.id}')">
+                        📂 ${escapeHtml(cat.name)} <span class="count">${catCounts[cat.id] || 0}</span>
+                    </button>
+                `;
+            });
+
+            if (uncategorized > 0) {
+                html += `
+                    <button class="category-filter-tab ${currentFilterCategory === 'uncategorized' ? 'active' : ''}" data-category="uncategorized" onclick="filterByCategory('uncategorized')">
+                        📋 未分类 <span class="count">${uncategorized}</span>
+                    </button>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function filterByCategory(catId) {
+            currentFilterCategory = catId;
+            renderCategoryFilters();
+            renderFiles();
+        }
+
+        function renderFiles() {
+            const files = getData(STORAGE_KEYS.FILES);
+            const plans = getData(STORAGE_KEYS.PLANS);
+            const container = document.getElementById('file-list');
+
+            if (files.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <div class="empty-state-text">资料库为空，上传文件开始吧</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // 计算每个文件被哪些计划引用
+            const filePlanCounts = {};
+            plans.forEach(plan => {
+                (plan.attachments || []).forEach(fileId => {
+                    filePlanCounts[fileId] = (filePlanCounts[fileId] || 0) + 1;
+                });
+            });
+
+            // 筛选文件
+            let filteredFiles = files;
+            if (currentFilterCategory === 'uncategorized') {
+                filteredFiles = files.filter(f => !f.category);
+            } else if (currentFilterCategory !== 'all') {
+                filteredFiles = files.filter(f => f.category === currentFilterCategory);
+            }
+
+            if (filteredFiles.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <div class="empty-state-text">该分类下没有文件</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredFiles.map(file => {
+                const linkedPlansCount = filePlanCounts[file.id] || 0;
+                const categories = getData(STORAGE_KEYS.CATEGORIES);
+                const cat = categories.find(c => c.id === file.category);
+                return `
+                    <div class="file-item" onclick="downloadFile(${file.id})">
+                        <button class="file-delete" onclick="event.stopPropagation(); deleteFile(${file.id})">×</button>
+                        <div class="file-icon">${getFileIcon(file.type)}</div>
+                        <div class="file-name">${escapeHtml(file.name)}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                        ${cat ? `<div style="font-size: 11px; color: var(--primary);">📂 ${escapeHtml(cat.name)}</div>` : ''}
+                        ${linkedPlansCount > 0 ? `<div class="file-linked-plans">📎 被${linkedPlansCount}个计划引用</div>` : '<div class="file-empty-links">暂未被引用</div>'}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== 分类管理 ====================
+        function showCategoryModal() {
+            renderCategoryManager();
+            document.getElementById('category-modal').classList.add('active');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('category-modal').classList.remove('active');
+            document.getElementById('new-category-name').value = '';
+        }
+
+        function renderCategoryManager() {
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            const files = getData(STORAGE_KEYS.FILES);
+            const container = document.getElementById('category-manager-list');
+
+            if (categories.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 20px;">
+                        <div class="empty-state-text">暂无分类，创建一个开始管理文件吧</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = categories.map(cat => {
+                const fileCount = files.filter(f => f.category === cat.id).length;
+                return `
+                    <div class="category-list-item">
+                        <div class="cat-name">
+                            📂 ${escapeHtml(cat.name)}
+                            <span class="cat-count">(${fileCount}个文件)</span>
+                        </div>
+                        <div class="cat-actions">
+                            <button class="cat-btn-edit" onclick="editCategory('${cat.id}')">✏️</button>
+                            <button class="cat-btn-delete" onclick="deleteCategory('${cat.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addCategory() {
+            const nameInput = document.getElementById('new-category-name');
+            const name = nameInput.value.trim();
+            if (!name) {
+                nameInput.focus();
+                return;
+            }
+
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            // 检查是否已存在同名分类
+            if (categories.some(c => c.name === name)) {
+                alert('分类名称已存在');
+                return;
+            }
+
+            categories.push({
+                id: Date.now().toString(),
+                name: name,
+                createdAt: new Date().toISOString()
+            });
+
+            saveData(STORAGE_KEYS.CATEGORIES, categories);
+            nameInput.value = '';
+            renderCategoryManager();
+            renderCategoryFilters();
+            renderFiles();
+        }
+
+        function editCategory(catId) {
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            const cat = categories.find(c => c.id === catId);
+            if (!cat) return;
+
+            const newName = prompt('输入新的分类名称：', cat.name);
+            if (!newName || !newName.trim()) return;
+
+            if (categories.some(c => c.id !== catId && c.name === newName.trim())) {
+                alert('分类名称已存在');
+                return;
+            }
+
+            cat.name = newName.trim();
+            saveData(STORAGE_KEYS.CATEGORIES, categories);
+            renderCategoryManager();
+            renderCategoryFilters();
+            renderFiles();
+        }
+
+        function deleteCategory(catId) {
+            if (!confirm('确定要删除这个分类吗？删除后，分类下的文件将变为"未分类"。')) return;
+
+            // 将该分类的文件设为未分类
+            const files = getData(STORAGE_KEYS.FILES);
+            files.forEach(f => {
+                if (f.category === catId) {
+                    f.category = null;
+                }
+            });
+            saveData(STORAGE_KEYS.FILES, files);
+
+            // 删除分类
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
+            const filtered = categories.filter(c => c.id !== catId);
+            saveData(STORAGE_KEYS.CATEGORIES, filtered);
+
+            renderCategoryManager();
+            renderCategoryFilters();
+            renderFiles();
+        }
+
+        function getFileIcon(type) {
+            if (type.startsWith('image/')) return '🖼️';
+            if (type.startsWith('video/')) return '🎬';
+            if (type.startsWith('audio/')) return '🎵';
+            if (type.includes('pdf')) return '📄';
+            if (type.includes('word') || type.includes('document')) return '📝';
+            if (type.includes('sheet') || type.includes('excel')) return '📊';
+            if (type.includes('presentation') || type.includes('powerpoint')) return '📽️';
+            if (type.includes('zip') || type.includes('rar') || type.includes('tar')) return '📦';
+            if (type.includes('text/')) return '📃';
+            return '📎';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function handleFileUpload(event) {
+            const fileList = event.target.files;
+            if (!fileList.length) return;
+
+            const files = getData(STORAGE_KEYS.FILES);
+
+            Array.from(fileList).forEach(file => {
+                // 检查是否已存在同名文件
+                const exists = files.some(f => f.name === file.name);
+                if (exists) {
+                    alert(`文件 "${file.name}" 已存在，将被跳过`);
+                    return;
+                }
+
+                // 限制文件总大小（localStorage限制约5MB）
+                const totalSize = files.reduce((sum, f) => sum + f.size, 0) + file.size;
+                if (totalSize > 4 * 1024 * 1024) {
+                    alert('存储空间不足，请删除一些文件后再试');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    files.push({
+                        id: Date.now() + Math.random(),
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        data: e.target.result,
+                        category: null,
+                        uploadedAt: new Date().toISOString()
+                    });
+                    saveData(STORAGE_KEYS.FILES, files);
+                    renderCategoryFilters();
+                    renderFiles();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            event.target.value = '';
+        }
+
+        function deleteFile(id) {
+            if (!confirm('确定要删除这个文件吗？')) return;
+            const files = getData(STORAGE_KEYS.FILES);
+            const filtered = files.filter(f => f.id !== id);
+            saveData(STORAGE_KEYS.FILES, filtered);
+            renderCategoryFilters();
+            renderFiles();
+        }
+
+        function downloadFile(id) {
+            const files = getData(STORAGE_KEYS.FILES);
+            const file = files.find(f => f.id === id);
+            if (!file) return;
+
+            const link = document.createElement('a');
+            link.href = file.data;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ==================== 导航 ====================
+        function switchPage(page) {
+            currentFilter = 'today';
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.page === page);
+            });
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.toggle('active', p.id === `page-${page}`);
+            });
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === 'today');
+            });
+
+            if (page === 'calendar') {
+                renderCalendar();
+            } else if (page === 'plans') {
+                renderPlans();
+            } else if (page === 'files') {
+                renderCategoryFilters();
+                renderFiles();
+            } else if (page === 'todo') {
+                renderTodos();
+            }
+        }
+
+        // ==================== 工具函数 ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            if (dateStr === getTodayStr()) return '今天';
+            if (dateStr === tomorrow.toISOString().split('T')[0]) return '明天';
+
+            return `${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+
+        // ==================== PWA 相关 ====================
+        let deferredPrompt = null;
+
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('SW 注册成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('SW 注册失败:', error);
+                    });
+            });
+        }
+
+        // 监听 PWA 安装提示
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // 检测是否已经安装过
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const dismissed = localStorage.getItem('pwa-banner-dismissed');
+            
+            if (!isStandalone && !dismissed) {
+                showPwaBanner();
+            }
+        });
+
+        // 检测是否已作为 PWA 运行
+        function isPWA() {
+            return window.matchMedia('(display-mode: standalone)').matches 
+                || navigator.standalone === true;
+        }
+
+        function showPwaBanner() {
+            const banner = document.getElementById('pwa-install-banner');
+            banner.classList.remove('hidden');
+            
+            // 绑定安装按钮
+            document.getElementById('pwa-install-btn').onclick = async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('安装结果:', outcome);
+                    deferredPrompt = null;
+                    hidePwaBanner();
+                }
+            };
+        }
+
+        function hidePwaBanner() {
+            const banner = document.getElementById('pwa-install-banner');
+            banner.classList.add('hidden');
+        }
+
+        function closePwaBanner() {
+            hidePwaBanner();
+            localStorage.setItem('pwa-banner-dismissed', 'true');
+        }
+
+        // 检测 PWA 安装完成
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA 已安装');
+            hidePwaBanner();
+            deferredPrompt = null;
+        });
+
+        // 回车添加任务
+        document.getElementById('todo-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addTodo();
+        });
+
+        // 导航点击
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => switchPage(item.dataset.page));
+        });
+
+        // 筛选标签
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.dataset.filter;
+                renderTodos();
+            });
+        });
+
+        // 点击模态框背景关闭
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // 初始化
+        initDateInput();
+        renderTodos();
+        checkNotificationPermission();
+        startReminderChecker();
+    </script>
+</body>
+</html>
