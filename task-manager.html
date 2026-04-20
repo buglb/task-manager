@@ -1728,9 +1728,9 @@
                 <div class="reminder-toggle">
                     <label>
                         <input type="checkbox" id="edit-reminder">
-                        🔔 每小时提醒
+                        🔔 定时提醒
                     </label>
-                    <span class="hint">开启后每小时提醒</span>
+                    <span class="hint">开启后每10分钟提醒</span>
                 </div>
                 <button class="btn-add" onclick="saveEdit()">保存修改</button>
             </div>
@@ -1831,9 +1831,9 @@
                 <div class="reminder-toggle">
                     <label>
                         <input type="checkbox" id="todo-reminder">
-                        🔔 每小时提醒
+                        🔔 定时提醒
                     </label>
-                    <span class="hint">开启后每小时提醒一次</span>
+                    <span class="hint">开启后每10分钟提醒</span>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 16px;">
                     <button class="btn-add" onclick="closeAddTodoModal()" style="flex: 1; background: var(--text-light);">取消</button>
@@ -2252,7 +2252,7 @@
                     startReminderChecker();
                     // 发送测试通知
                     new Notification('🔔 提醒已开启', {
-                        body: '您设置的待办任务将在每小时准点提醒您',
+                        body: '您设置的待办任务将每10分钟提醒您',
                         icon: '🔔'
                     });
                 } else {
@@ -2280,45 +2280,48 @@
             const todos = getData(STORAGE_KEYS.TODOS);
             const today = getTodayStr();
             const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
 
-            // 每小时提醒一次（在整点前后5分钟内）
-            if (currentMinute >= 0 && currentMinute <= 5) {
-                todos.forEach(todo => {
-                    if (!todo.reminder) return;
+            // 收集所有需要提醒的任务
+            const reminderTasks = [];
+            todos.forEach(todo => {
+                if (!todo.reminder) return;
 
-                    // 检查是否已完成
-                    const isCompleted = todo.repeat === 'daily'
-                        ? (todo.completedDates?.includes(today))
-                        : (todo.completed && todo.date === today);
+                // 检查是否已完成
+                const isCompleted = todo.repeat === 'daily'
+                    ? (todo.completedDates?.includes(today))
+                    : (todo.completed && todo.date === today);
 
-                    if (isCompleted) return;
+                if (isCompleted) return;
 
-                    // 检查是否刚提醒过（同一小时内不重复提醒）
-                    const lastSent = todo.lastReminderSent ? new Date(todo.lastReminderSent) : null;
-                    if (lastSent) {
-                        const hourDiff = (now - lastSent) / (1000 * 60 * 60);
-                        if (hourDiff < 1) return;
-                    }
+                // 检查是否刚提醒过（同一小时内不重复提醒）
+                const lastSent = todo.lastReminderSent ? new Date(todo.lastReminderSent) : null;
+                if (lastSent) {
+                    const minDiff = (now - lastSent) / (1000 * 60);
+                    if (minDiff < 10) return; // 10分钟内不重复提醒
+                }
 
-                    // 发送通知
-                    const notification = new Notification(`📝 待办提醒 - ${currentHour}:00`, {
-                        body: todo.text,
-                        icon: '📋',
-                        tag: `todo-${todo.id}`,
-                        requireInteraction: true
-                    });
+                reminderTasks.push(todo);
+            });
 
-                    notification.onclick = function() {
-                        window.focus();
-                        notification.close();
-                    };
-
-                    // 更新最后提醒时间
-                    todo.lastReminderSent = now.toISOString();
+            // 发送一条通知，列出所有待提醒任务
+            if (reminderTasks.length > 0) {
+                const taskList = reminderTasks.map(t => `• ${t.text}`).join('\n');
+                const notification = new Notification('📝 待办提醒', {
+                    body: `还有 ${reminderTasks.length} 个任务待完成：\n${taskList}`,
+                    icon: '📋',
+                    tag: 'todo-reminder',
+                    requireInteraction: false
                 });
 
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+
+                // 更新最后提醒时间
+                reminderTasks.forEach(todo => {
+                    todo.lastReminderSent = now.toISOString();
+                });
                 saveData(STORAGE_KEYS.TODOS, todos);
             }
         }
@@ -2329,8 +2332,8 @@
 
             if (hasReminder && 'Notification' in window && Notification.permission === 'granted') {
                 if (!reminderInterval) {
-                    // 每分钟检查一次
-                    reminderInterval = setInterval(sendReminderNotification, 60000);
+                    // 每10分钟检查一次
+                    reminderInterval = setInterval(sendReminderNotification, 10 * 60 * 1000);
                     // 立即检查一次
                     sendReminderNotification();
                 }
