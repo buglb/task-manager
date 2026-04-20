@@ -58,34 +58,6 @@
             line-height: 1.5;
         }
 
-        /* 头部 */
-        .header {
-            background: var(--white);
-            padding: 16px 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header h1 {
-            font-size: 20px;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .header h1::before {
-            content: '📋';
-        }
-
-        .user-badge {
-            font-size: 12px;
-            color: var(--text-light);
-            margin-top: 4px;
-        }
-
         /* 底部导航 */
         .nav {
             position: fixed;
@@ -270,6 +242,7 @@
         .priority-high { background: #FFF1F0; color: var(--danger); }
         .priority-medium { background: #FFFBE6; color: var(--warning); }
         .priority-low { background: #F6FFED; color: var(--success); }
+        .priority-daily { background: #E8F5E9; color: #4CAF50; }
 
         .todo-actions {
             display: flex;
@@ -924,6 +897,63 @@
             overflow-y: auto;
         }
 
+        /* 计划资料选择 - 分类列表 */
+        .plan-category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .plan-category-btn {
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .plan-category-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .plan-category-btn.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .plan-category-btn .count {
+            font-size: 11px;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+
+        .plan-category-btn.active .count {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .plan-file-list-title {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            padding-left: 4px;
+        }
+
+        .plan-file-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-light);
+            font-size: 13px;
+        }
+
         .plan-file-item {
             display: flex;
             flex-direction: column;
@@ -1381,6 +1411,112 @@
             background: rgba(255,255,255,0.3);
         }
 
+        /* 激励语标题 */
+        .header {
+            background: var(--white);
+            padding: 16px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header h1::before {
+            content: '📋';
+        }
+
+        .motivation-text {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 4px;
+            padding: 6px 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.2s;
+            border: 1px dashed transparent;
+            max-width: 250px;
+        }
+
+        .motivation-text:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .motivation-input {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 4px;
+            padding: 6px 10px;
+            background: var(--bg);
+            border-radius: 6px;
+            border: 1px solid var(--primary);
+            width: 250px;
+            outline: none;
+        }
+
+        /* 圆形进度条 */
+        /* 圆形进度条 */
+        .circular-progress {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .circular-progress .bg-circle {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 8;
+        }
+
+        .circular-progress .progress-circle {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .circular-progress .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .circular-progress .progress-percent {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .circular-progress .progress-count {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* 进度条颜色 */
+        .progress-low { stroke: var(--danger); }
+        .progress-mid { stroke: var(--warning); }
+        .progress-high { stroke: var(--success); }
+
         /* 响应式 */
         @media (max-width: 480px) {
             .header { padding: 12px 16px; }
@@ -1413,7 +1549,8 @@
 
     <header class="header">
         <h1>啊滨的任务管理</h1>
-        <div class="user-badge">📦 智能柜销售</div>
+        <div class="motivation-text" id="motivation-text" onclick="editMotivation()">今日加油 💪</div>
+        <input type="text" class="motivation-input hidden" id="motivation-input" placeholder="输入激励语..." onblur="saveMotivation()" onkeypress="if(event.key==='Enter')saveMotivation()">
     </header>
 
     <main class="main">
@@ -1433,6 +1570,7 @@
                 <div class="form-row">
                     <input type="date" id="todo-date">
                     <select id="todo-priority">
+                        <option value="daily">🌿 日常级</option>
                         <option value="low">🟢 低优先级</option>
                         <option value="medium" selected>🟡 中优先级</option>
                         <option value="high">🔴 高优先级</option>
@@ -1453,12 +1591,6 @@
                     <span class="hint">开启后每小时提醒一次</span>
                 </div>
                 <button class="btn-add" onclick="addTodo()">添加任务</button>
-            </div>
-
-            <div class="filter-tabs">
-                <button class="filter-tab active" data-filter="today">今天</button>
-                <button class="filter-tab" data-filter="week">本周</button>
-                <button class="filter-tab" data-filter="all">全部</button>
             </div>
 
             <div class="card">
@@ -1567,6 +1699,7 @@
                 <div class="form-row">
                     <input type="date" id="edit-date">
                     <select id="edit-priority">
+                        <option value="daily">🌿 日常级</option>
                         <option value="low">🟢 低优先级</option>
                         <option value="medium">🟡 中优先级</option>
                         <option value="high">🔴 高优先级</option>
@@ -1620,20 +1753,21 @@
                 <input type="text" id="plan-title" placeholder="计划名称..." maxlength="50">
                 <textarea id="plan-desc" placeholder="计划描述（可选）..." style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; margin-bottom: 10px; min-height: 80px; resize: vertical;"></textarea>
                 <div class="form-row">
-                    <input type="number" id="plan-progress" placeholder="进度 %" min="0" max="100" value="0">
                     <select id="plan-status">
                         <option value="progress">进行中</option>
                         <option value="warning">遇到问题</option>
                         <option value="stuck">停滞不前</option>
                     </select>
-                </div>
-                <div class="form-row">
                     <input type="date" id="plan-deadline" placeholder="截止日期">
                 </div>
-                <!-- 计划关联资料选择 -->
+                <!-- 计划关联资料选择 - 分类→文件层级 -->
                 <div class="plan-file-selector">
                     <label style="font-size: 13px; color: var(--text-light); margin-bottom: 8px; display: block;">📎 关联资料</label>
-                    <div id="plan-file-list" class="plan-file-grid"></div>
+                    <div id="plan-category-list" class="plan-category-list"></div>
+                    <div id="plan-file-list-container">
+                        <div class="plan-file-list-title">选择分类后查看文件</div>
+                        <div id="plan-file-list" class="plan-file-grid"></div>
+                    </div>
                 </div>
                 <button class="btn-add" onclick="savePlan()">保存计划</button>
             </div>
@@ -1687,6 +1821,36 @@
         function initDateInput() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('todo-date').value = today;
+        }
+
+        // ==================== 激励语 ====================
+        const MOTIVATION_KEY = 'abin_motivation';
+
+        function initMotivation() {
+            const saved = localStorage.getItem(MOTIVATION_KEY);
+            if (saved) {
+                document.getElementById('motivation-text').textContent = saved;
+            }
+        }
+
+        function editMotivation() {
+            const textEl = document.getElementById('motivation-text');
+            const inputEl = document.getElementById('motivation-input');
+            textEl.classList.add('hidden');
+            inputEl.classList.remove('hidden');
+            inputEl.value = textEl.textContent.replace(/\s*[\u4e00-\u9fa5\w]+$/, '').trim();
+            inputEl.focus();
+            inputEl.select();
+        }
+
+        function saveMotivation() {
+            const textEl = document.getElementById('motivation-text');
+            const inputEl = document.getElementById('motivation-input');
+            const value = inputEl.value.trim() || '今日加油 💪';
+            textEl.textContent = value;
+            localStorage.setItem(MOTIVATION_KEY, value);
+            inputEl.classList.add('hidden');
+            textEl.classList.remove('hidden');
         }
 
         // ==================== 待办事项 ====================
@@ -1783,13 +1947,25 @@
             }).length;
 
             document.getElementById('todo-stats').innerHTML = `
-                <div class="stat-item">
+                <div class="stat-item" style="min-width: 120px;">
                     <div class="stat-num">${todayCount}</div>
                     <div class="stat-label">今日待办</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-num success">${todayCompleted}</div>
-                    <div class="stat-label">今日已打卡</div>
+                <div class="stat-item" style="min-width: 140px;">
+                    <div class="circular-progress" id="daily-progress">
+                        <svg viewBox="0 0 100 100">
+                            <circle class="bg-circle" cx="50" cy="50" r="42"/>
+                            <circle class="progress-circle ${todayCount === 0 ? 'progress-high' : todayCompleted / todayCount >= 0.7 ? 'progress-high' : todayCompleted / todayCount >= 0.3 ? 'progress-mid' : 'progress-low'}" 
+                                cx="50" cy="50" r="42"
+                                stroke-dasharray="${264}"
+                                stroke-dashoffset="${264 - (todayCount > 0 ? Math.round((todayCompleted / todayCount) * 264) : 0)}"/>
+                        </svg>
+                        <div class="progress-text">
+                            <span class="progress-percent">${todayCount > 0 ? Math.round((todayCompleted / todayCount) * 100) : 0}%</span>
+                            <span class="progress-count">${todayCompleted}/${todayCount}</span>
+                        </div>
+                    </div>
+                    <div class="stat-label" style="margin-top: 8px;">今日打卡</div>
                 </div>
             `;
 
@@ -1837,7 +2013,7 @@
                                 <span>📅 ${formatDate(todo.date)}</span>
                             `}
                             <span class="todo-priority priority-${todo.priority}">
-                                ${todo.priority === 'high' ? '🔴 高' : todo.priority === 'medium' ? '🟡 中' : '🟢 低'}
+                                ${todo.priority === 'high' ? '🔴 高' : todo.priority === 'medium' ? '🟡 中' : todo.priority === 'daily' ? '🌿 日常' : '🟢 低'}
                             </span>
                             ${todo.reminder && !todo.isCompletedToday ? `
                                 <span class="todo-reminder-badge" onclick="toggleReminder(${todo.id}, event)">
@@ -2232,10 +2408,10 @@
                         </div>
                         ${plan.desc ? `<p style="font-size: 13px; color: var(--text-light); margin-bottom: 8px;">${escapeHtml(plan.desc)}</p>` : ''}
                         <div class="plan-progress">
-                            <div class="plan-progress-bar" style="width: ${plan.progress}%"></div>
+                            <div class="plan-progress-bar" style="width: ${plan.progress || 0}%"></div>
                         </div>
                         <div class="plan-meta">
-                            <span>📊 ${plan.progress}%</span>
+                            <span>📊 ${plan.progress || 0}%</span>
                             ${plan.deadline ? `<span>📅 截止: ${formatDate(plan.deadline)}</span>` : ''}
                         </div>
                         <div class="plan-attachments">
@@ -2367,11 +2543,13 @@
             document.getElementById('plan-modal-title').textContent = id ? '编辑计划' : '添加新计划';
             document.getElementById('plan-title').value = '';
             document.getElementById('plan-desc').value = '';
-            document.getElementById('plan-progress').value = '0';
             document.getElementById('plan-status').value = 'progress';
             document.getElementById('plan-deadline').value = '';
-            // 渲染资料列表
-            renderPlanFileList(null);
+            // 重置选中分类
+            window.selectedPlanCategory = null;
+            // 渲染分类列表和资料列表
+            renderPlanCategories(null);
+            renderPlanFileListByCategory(null, null);
             document.getElementById('plan-modal').classList.add('active');
         }
 
@@ -2383,27 +2561,104 @@
                 document.getElementById('plan-modal-title').textContent = '编辑计划';
                 document.getElementById('plan-title').value = plan.title;
                 document.getElementById('plan-desc').value = plan.desc || '';
-                document.getElementById('plan-progress').value = plan.progress;
                 document.getElementById('plan-status').value = plan.status;
                 document.getElementById('plan-deadline').value = plan.deadline || '';
-                // 渲染资料列表
-                renderPlanFileList(plan.attachments || []);
+                // 重置选中分类
+                window.selectedPlanCategory = null;
+                // 保存当前选中的文件ID列表
+                window.planSelectedFileIds = plan.attachments || [];
+                // 渲染分类列表和资料列表
+                renderPlanCategories(plan.attachments || []);
+                renderPlanFileListByCategory(null, plan.attachments || []);
                 document.getElementById('plan-modal').classList.add('active');
             }
         }
 
-        // 渲染计划模态框中的资料列表
-        function renderPlanFileList(selectedIds) {
+        // 渲染计划模态框中的分类列表
+        function renderPlanCategories(selectedIds = []) {
+            const categories = getData(STORAGE_KEYS.CATEGORIES);
             const files = getData(STORAGE_KEYS.FILES);
-            const container = document.getElementById('plan-file-list');
-            selectedIds = selectedIds || [];
+            const container = document.getElementById('plan-category-list');
 
-            if (files.length === 0) {
-                container.innerHTML = '<div class="plan-file-empty">📁 资料库为空，先去上传文件吧</div>';
+            // 计算每个分类的文件数量
+            const categoryCounts = {};
+            files.forEach(file => {
+                const catId = file.category || 'uncategorized';
+                categoryCounts[catId] = (categoryCounts[catId] || 0) + 1;
+            });
+
+            // 未分类文件数量
+            const uncategorizedCount = categoryCounts['uncategorized'] || 0;
+
+            if (categories.length === 0 && uncategorizedCount === 0) {
+                container.innerHTML = '';
                 return;
             }
 
-            container.innerHTML = files.map(file => `
+            let html = '';
+
+            // 未分类按钮
+            if (uncategorizedCount > 0) {
+                html += `
+                    <button class="plan-category-btn ${window.selectedPlanCategory === 'uncategorized' ? 'active' : ''}" 
+                            onclick="selectPlanCategory('uncategorized')">
+                        📁 未分类 <span class="count">${uncategorizedCount}</span>
+                    </button>
+                `;
+            }
+
+            // 分类按钮
+            categories.forEach(cat => {
+                const count = categoryCounts[cat.id] || 0;
+                if (count > 0) {
+                    html += `
+                        <button class="plan-category-btn ${window.selectedPlanCategory === cat.id ? 'active' : ''}" 
+                                onclick="selectPlanCategory('${cat.id}')">
+                            📂 ${escapeHtml(cat.name)} <span class="count">${count}</span>
+                        </button>
+                    `;
+                }
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 选择分类
+        function selectPlanCategory(categoryId) {
+            window.selectedPlanCategory = categoryId;
+            const selectedIds = window.planSelectedFileIds || [];
+            renderPlanCategories(selectedIds);
+            renderPlanFileListByCategory(categoryId, selectedIds);
+        }
+
+        // 渲染计划模态框中指定分类的文件列表
+        function renderPlanFileListByCategory(categoryId, selectedIds) {
+            const files = getData(STORAGE_KEYS.FILES);
+            const container = document.getElementById('plan-file-list');
+            const titleEl = container.parentElement.querySelector('.plan-file-list-title');
+            selectedIds = selectedIds || [];
+
+            // 筛选指定分类的文件
+            let filteredFiles;
+            if (!categoryId) {
+                filteredFiles = files;
+                if (titleEl) titleEl.textContent = `全部文件（${files.length}个）`;
+            } else if (categoryId === 'uncategorized') {
+                filteredFiles = files.filter(f => !f.category);
+                if (titleEl) titleEl.textContent = `未分类文件（${filteredFiles.length}个）`;
+            } else {
+                filteredFiles = files.filter(f => f.category === categoryId);
+                const categories = getData(STORAGE_KEYS.CATEGORIES);
+                const cat = categories.find(c => c.id === categoryId);
+                if (titleEl) titleEl.textContent = `${cat ? cat.name : '未知'}（${filteredFiles.length}个）`;
+            }
+
+            if (filteredFiles.length === 0) {
+                container.innerHTML = '<div class="plan-file-empty">📁 该分类暂无文件</div>';
+                return;
+            }
+
+            container.innerHTML = filteredFiles.map(file => `
                 <div class="plan-file-item ${selectedIds.includes(file.id) ? 'selected' : ''}" onclick="togglePlanFile(this, ${file.id})">
                     <span class="check-icon">✓</span>
                     <span class="file-icon">${getFileIcon(file.type)}</span>
@@ -2415,6 +2670,16 @@
         // 切换资料选中状态
         function togglePlanFile(element, fileId) {
             element.classList.toggle('selected');
+            // 维护选中状态
+            if (!window.planSelectedFileIds) {
+                window.planSelectedFileIds = [];
+            }
+            const idx = window.planSelectedFileIds.indexOf(fileId);
+            if (idx > -1) {
+                window.planSelectedFileIds.splice(idx, 1);
+            } else {
+                window.planSelectedFileIds.push(fileId);
+            }
         }
 
         function closePlanModal() {
@@ -2425,7 +2690,6 @@
             const id = document.getElementById('plan-edit-id').value;
             const title = document.getElementById('plan-title').value.trim();
             const desc = document.getElementById('plan-desc').value.trim();
-            const progress = parseInt(document.getElementById('plan-progress').value) || 0;
             const status = document.getElementById('plan-status').value;
             const deadline = document.getElementById('plan-deadline').value;
 
@@ -2434,13 +2698,8 @@
                 return;
             }
 
-            // 获取选中的资料
-            const selectedItems = document.querySelectorAll('#plan-file-list .plan-file-item.selected');
-            const selectedIds = Array.from(selectedItems).map(item => {
-                const onclick = item.getAttribute('onclick');
-                const match = onclick.match(/togglePlanFile\(.*?,\s*([^)]+)\)/);
-                return match ? parseFloat(match[1]) : null;
-            }).filter(Boolean);
+            // 获取选中的资料ID
+            const selectedIds = window.planSelectedFileIds || [];
 
             const plans = getData(STORAGE_KEYS.PLANS);
 
@@ -2449,7 +2708,6 @@
                 if (plan) {
                     plan.title = title;
                     plan.desc = desc;
-                    plan.progress = Math.min(100, Math.max(0, progress));
                     plan.status = status;
                     plan.deadline = deadline;
                     plan.attachments = selectedIds;
@@ -2459,7 +2717,6 @@
                     id: Date.now(),
                     title,
                     desc,
-                    progress: Math.min(100, Math.max(0, progress)),
                     status,
                     deadline,
                     attachments: selectedIds,
@@ -3017,6 +3274,7 @@
 
         // 初始化
         initDateInput();
+        initMotivation();
         renderTodos();
         checkNotificationPermission();
         startReminderChecker();
