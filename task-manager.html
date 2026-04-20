@@ -265,6 +265,38 @@
         .btn-edit { background: var(--primary-light); color: var(--primary); }
         .btn-delete { background: #FFF1F0; color: var(--danger); }
 
+        /* 添加任务按钮 */
+        .btn-add-task {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--primary), #3A7BC8);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(74, 144, 217, 0.3);
+        }
+
+        .btn-add-task:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74, 144, 217, 0.4);
+        }
+
+        .btn-add-task:active {
+            transform: translateY(0);
+        }
+
+        .btn-add-task span {
+            font-size: 18px;
+        }
+
         /* 添加任务表单 */
         .add-form {
             background: var(--white);
@@ -1565,33 +1597,9 @@
 
             <div class="stats" id="todo-stats"></div>
 
-            <div class="add-form">
-                <input type="text" id="todo-input" placeholder="添加新任务..." maxlength="200">
-                <div class="form-row">
-                    <input type="date" id="todo-date">
-                    <select id="todo-priority">
-                        <option value="daily">🌿 日常级</option>
-                        <option value="low">🟢 低优先级</option>
-                        <option value="medium" selected>🟡 中优先级</option>
-                        <option value="high">🔴 高优先级</option>
-                    </select>
-                </div>
-                <div class="repeat-toggle">
-                    <label>
-                        <input type="checkbox" id="todo-repeat">
-                        🔄 每日重复
-                    </label>
-                    <span class="hint">每天自动出现，坚持打卡养成好习惯</span>
-                </div>
-                <div class="reminder-toggle">
-                    <label>
-                        <input type="checkbox" id="todo-reminder">
-                        🔔 每小时提醒
-                    </label>
-                    <span class="hint">开启后每小时提醒一次</span>
-                </div>
-                <button class="btn-add" onclick="addTodo()">添加任务</button>
-            </div>
+            <button class="btn-add-task" onclick="showAddTodoModal()">
+                <span>➕</span> 添加任务
+            </button>
 
             <div class="card">
                 <div class="card-title">📝 待办清单</div>
@@ -1786,6 +1794,46 @@
             <div style="margin-top: 16px; display: flex; gap: 10px;">
                 <button class="btn-add" onclick="confirmFileSelection()" style="flex: 1;">确认选择</button>
                 <button class="btn-add" onclick="closeFilePicker()" style="flex: 1; background: var(--text-light);">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加任务模态框 -->
+    <div class="modal" id="add-todo-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">✨ 添加新任务</span>
+                <button class="modal-close" onclick="closeAddTodoModal()">×</button>
+            </div>
+            <div class="add-form" style="box-shadow: none; padding: 0;">
+                <input type="text" id="todo-input" placeholder="输入任务内容..." maxlength="200" autofocus>
+                <div class="form-row">
+                    <input type="date" id="todo-date">
+                    <select id="todo-priority">
+                        <option value="daily">🌿 日常级</option>
+                        <option value="low">🟢 低优先级</option>
+                        <option value="medium" selected>🟡 中优先级</option>
+                        <option value="high">🔴 高优先级</option>
+                    </select>
+                </div>
+                <div class="repeat-toggle">
+                    <label>
+                        <input type="checkbox" id="todo-repeat">
+                        🔄 每日重复
+                    </label>
+                    <span class="hint">每天自动出现，坚持打卡养成好习惯</span>
+                </div>
+                <div class="reminder-toggle">
+                    <label>
+                        <input type="checkbox" id="todo-reminder">
+                        🔔 每小时提醒
+                    </label>
+                    <span class="hint">开启后每小时提醒一次</span>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button class="btn-add" onclick="closeAddTodoModal()" style="flex: 1; background: var(--text-light);">取消</button>
+                    <button class="btn-add" onclick="addTodo()" style="flex: 1;">确认添加</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2072,12 +2120,28 @@
             });
 
             saveData(STORAGE_KEYS.TODOS, todos);
-            input.value = '';
-            repeat.checked = false;
-            reminder.checked = false;
-            initDateInput();
+            closeAddTodoModal();
             renderTodos();
             startReminderChecker();
+        }
+
+        // 显示添加任务模态框
+        function showAddTodoModal() {
+            // 重置表单
+            document.getElementById('todo-input').value = '';
+            document.getElementById('todo-date').value = getTodayStr();
+            document.getElementById('todo-priority').value = 'medium';
+            document.getElementById('todo-repeat').checked = false;
+            document.getElementById('todo-reminder').checked = false;
+            // 显示模态框
+            document.getElementById('add-todo-modal').classList.add('active');
+            // 自动聚焦到输入框
+            document.getElementById('todo-input').focus();
+        }
+
+        // 关闭添加任务模态框
+        function closeAddTodoModal() {
+            document.getElementById('add-todo-modal').classList.remove('active');
         }
 
         function toggleTodo(id) {
