@@ -2782,6 +2782,7 @@
             const categories = getData(STORAGE_KEYS.CATEGORIES);
             const files = getData(STORAGE_KEYS.FILES);
             const container = document.getElementById('plan-category-list');
+            if (!container) return;
 
             // 计算每个分类的文件数量
             const categoryCounts = {};
@@ -2838,7 +2839,8 @@
         function renderPlanFileListByCategory(categoryId, selectedIds) {
             const files = getData(STORAGE_KEYS.FILES);
             const container = document.getElementById('plan-file-list');
-            const titleEl = container.parentElement.querySelector('.plan-file-list-title');
+            if (!container) return;
+            const titleEl = container.parentElement?.querySelector('.plan-file-list-title');
             selectedIds = selectedIds || [];
 
             // 筛选指定分类的文件
@@ -3601,6 +3603,7 @@
         initDateInput();
         initMotivation();
         renderTodos();
+        renderPlans(); // 初始化渲染计划列表
         checkNotificationPermission();
         startReminderChecker();
     </script>
