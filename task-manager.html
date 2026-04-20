@@ -219,6 +219,15 @@
             display: block;
         }
 
+        .todo-item.highlight {
+            animation: highlight-pulse 1s ease;
+        }
+
+        @keyframes highlight-pulse {
+            0%, 100% { background: var(--bg); }
+            50% { background: var(--primary-light); }
+        }
+
         .todo-content {
             flex: 1;
             min-width: 0;
@@ -1379,39 +1388,61 @@
             color: var(--text-light);
         }
 
-        /* 通知授权提示 */
-        .notification-permission-banner {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* 待提醒任务列表 */
+        .reminder-tasks-banner {
+            background: linear-gradient(135deg, var(--primary) 0%, #3A7BC8 100%);
             color: white;
-            padding: 12px 16px;
-            border-radius: 10px;
+            padding: 14px 16px;
+            border-radius: 12px;
             margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
         }
 
-        .notification-permission-banner .banner-text {
-            font-size: 13px;
+        .reminder-tasks-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .notification-permission-banner .btn-allow {
-            padding: 8px 16px;
-            background: white;
-            color: #667eea;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
+        .reminder-tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .notification-permission-banner.hidden {
+        .reminder-task-item {
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reminder-task-item .task-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .reminder-task-item .task-status {
+            font-size: 12px;
+            opacity: 0.8;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+
+        .reminder-task-item.completed {
+            background: rgba(82, 196, 26, 0.3);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .reminder-tasks-banner.hidden {
             display: none;
         }
 
@@ -1631,11 +1662,9 @@
     <main class="main">
         <!-- 待办清单页面 -->
         <div class="page active" id="page-todo">
-            <div class="notification-permission-banner hidden" id="notification-banner">
-                <div class="banner-text">
-                    🔔 开启通知提醒，不错过任何待办
-                </div>
-                <button class="btn-allow" onclick="requestNotificationPermission()">开启提醒</button>
+            <div class="reminder-tasks-banner hidden" id="reminder-tasks-banner">
+                <div class="reminder-tasks-header">🔔 待提醒任务</div>
+                <div class="reminder-tasks-list" id="reminder-tasks-list"></div>
             </div>
 
             <div class="stats" id="todo-stats"></div>
@@ -2143,6 +2172,9 @@
                     </div>
                 </div>
             `).join('');
+
+            // 渲染提醒任务横幅
+            renderReminderTasksBanner();
         }
 
         function addTodo() {
@@ -2286,6 +2318,7 @@
                 saveData(STORAGE_KEYS.TODOS, todos);
                 renderTodos();
                 startReminderChecker();
+                renderReminderTasksBanner();
             }
         }
 
@@ -2297,7 +2330,6 @@
 
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    document.getElementById('notification-banner').classList.add('hidden');
                     startReminderChecker();
                     // 发送测试通知
                     new Notification('🔔 提醒已开启', {
@@ -2311,14 +2343,60 @@
         }
 
         function checkNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                document.getElementById('notification-banner').classList.add('hidden');
-                return true;
-            } else if ('Notification' in window && Notification.permission !== 'denied') {
-                // 显示授权提示
-                document.getElementById('notification-banner').classList.remove('hidden');
-            }
+            // 总是显示提醒任务横幅
+            renderReminderTasksBanner();
             return false;
+        }
+
+        // 渲染提醒任务横幅
+        function renderReminderTasksBanner() {
+            const todos = getData(STORAGE_KEYS.TODOS);
+            const today = getTodayStr();
+            const banner = document.getElementById('reminder-tasks-banner');
+            const list = document.getElementById('reminder-tasks-list');
+
+            // 获取所有开启了提醒的任务
+            const reminderTasks = todos.filter(t => t.reminder);
+
+            if (reminderTasks.length === 0) {
+                banner.classList.add('hidden');
+                return;
+            }
+
+            // 显示横幅
+            banner.classList.remove('hidden');
+
+            // 渲染任务列表
+            let html = '';
+            reminderTasks.forEach(todo => {
+                // 检查是否已完成
+                const isCompleted = todo.repeat === 'daily'
+                    ? (todo.completedDates?.includes(today))
+                    : (todo.completed && todo.date === today);
+
+                html += `
+                    <div class="reminder-task-item ${isCompleted ? 'completed' : ''}" onclick="navigateToTodo(${todo.id})">
+                        <span class="task-name">${escapeHtml(todo.text)}</span>
+                        <span class="task-status">${isCompleted ? '✓ 已完成' : '待完成'}</span>
+                    </div>
+                `;
+            });
+
+            list.innerHTML = html;
+        }
+
+        // 点击提醒任务跳转到对应任务
+        function navigateToTodo(id) {
+            // 切换到待办页面
+            showPage('todo');
+            // 高亮对应任务（简单实现：滚动到任务附近）
+            const todoElement = document.querySelector(`[data-todo-id="${id}"]`);
+            if (todoElement) {
+                todoElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 闪烁效果
+                todoElement.classList.add('highlight');
+                setTimeout(() => todoElement.classList.remove('highlight'), 1000);
+            }
         }
 
         function sendReminderNotification() {
